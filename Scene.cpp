@@ -37,9 +37,13 @@ bool Scene::loadMesh(const char *filename)
 
     mesh->free();
     bool bSuccess = reader.readMesh(filename, *mesh);
-    if (bSuccess)
+    if (bSuccess) {
         mesh->sendToOpenGL(basicProgram);
-
+        std::cout << "Mesh bounding box" << std::endl;
+        std::cout << "min = (" << mesh->aabb.min.x << ", " << mesh->aabb.min.y << ", " << mesh->aabb.min.z << ")" << std::endl;
+        std::cout << "max = (" << mesh->aabb.max.x << ", " << mesh->aabb.max.y << ", " << mesh->aabb.max.z << ")" << std::endl;
+    }
+    else std::cout << "Couldn't load mesh" << std::endl;
     return bSuccess;
 }
 
@@ -51,11 +55,11 @@ void Scene::update(int deltaTime)
 
 void Scene::render(int n)
 {
-    const glm::mat4 &viewMatrix = camera.getViewMatrix();
-    const glm::mat4 &projectionMatrix = camera.getProjectionMatrix();
+    const glm::mat4 &view = camera.getViewMatrix();
+    const glm::mat4 &projection = camera.getProjectionMatrix();
     basicProgram.use();
-    basicProgram.setUniformMatrix4f("view", viewMatrix);
-    basicProgram.setUniformMatrix4f("projection", projectionMatrix);
+    basicProgram.setUniformMatrix4f("view", view);
+    basicProgram.setUniformMatrix4f("projection", projection);
     basicProgram.setUniform1i("bLighting", bPolygonFill ? 1 : 0);
     if (bPolygonFill)
     {
@@ -70,27 +74,53 @@ void Scene::render(int n)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         for (int i = 0; i < n; ++i)
             for (int j = 0; j < n; ++j)
-                render(i, j, viewMatrix);
+                render(i, j, view, projection);
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDisable(GL_POLYGON_OFFSET_FILL);
         basicProgram.setUniform4f("color", 0.0f, 0.0f, 0.0f, 1.0f);
     }
     for (int i = 0; i < n; ++i)
         for (int j = 0; j < n; ++j)
-            render(i, j, viewMatrix);            
+            render(i, j, view, projection);            
 }
 
-void Scene::render(int i, int j, const glm::mat4 &viewMatrix)
+void Scene::render(int i, int j, const glm::mat4 &view, const glm::mat4 &projection)
 {
-    glm::mat4 modelMatrix(1.0f);
-    modelMatrix = glm::translate(modelMatrix, glm::vec3(2*i, 0, -2*j));
-    basicProgram.setUniformMatrix4f("model", modelMatrix);
+    glm::mat4 model(1.0f);
+    model = glm::translate(model, glm::vec3(2*i, 0, -2*j));
+    basicProgram.setUniformMatrix4f("model", model);
 
-    glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(viewMatrix * modelMatrix));
+    if (!insideFrustum(model, view, projection)) return;
+
+    glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
     
     mesh->render();
 }
+
+bool Scene::insideFrustum(const glm::mat4 &model, const glm::mat4 &view, const glm::mat4 &projection) const {
+    glm::vec3 aabbIncrement = mesh->aabb.max - mesh->aabb.min;
+    glm::vec3 aabbMin = mesh->aabb.min;
+    for (int x = 0; x <= 1; ++x) {
+        for (int y = 0; y <= 1; ++y) {
+            for (int z = 0; z <= 1; ++z) {
+                glm::vec3 aabbCorner = aabbMin + glm::vec3(x, y, z) * aabbIncrement;
+                if (insideFrustum(aabbCorner, model, view, projection)) return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Scene::insideFrustum(const glm::vec3 &point, const glm::mat4 &model, const glm::mat4 &view, const glm::mat4 &projection) const {
+    glm::vec4 clip = projection * view * model * glm::vec4(point, 1.0);
+    if (glm::abs(clip.x) > clip.w) return false;
+    if (glm::abs(clip.y) > clip.w) return false;
+    if (glm::abs(clip.z) > clip.w) return false;
+    return true;
+}
+
+
 
 Camera &Scene::getCamera()
 {

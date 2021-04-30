@@ -7,6 +7,11 @@
 
 // Class TriangleMesh renders a very simple room with textures
 
+struct AABB {
+    glm::vec3 min;
+    glm::vec3 max;
+};
+
 class TriangleMesh
 {
 
@@ -21,6 +26,7 @@ public:
     void sendToOpenGL(ShaderProgram &program);
     void render() const;
     void free();
+    AABB aabb;
 
 private:
     std::vector<glm::vec3> vertices;

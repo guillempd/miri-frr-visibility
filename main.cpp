@@ -200,8 +200,9 @@ int main(int argc, char **argv)
 
     // Application instance initialization
     Application::instance().init();
-    if (argc > 1)
-        Application::instance().loadMesh(argv[1]);
+    // if (argc > 1)
+    //     Application::instance().loadMesh(argv[1]);
+    Application::instance().loadMesh("../models/torus.ply");
     prevTime = glutGet(GLUT_ELAPSED_TIME);
     // GLUT gains control of the application
     glutMainLoop();
