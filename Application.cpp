@@ -58,17 +58,24 @@ void Application::updateFrameRate(int deltaTime)
 
 void Application::render()
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    scene.render(copies);
-    
+    if (ImGui::Begin("Scene Size")) {
+        ImGui::PushButtonRepeat(true);
+        if (ImGui::ArrowButton("##left", ImGuiDir_Left)) copies = (--copies > 0 ? copies : 0);
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("##right", ImGuiDir_Right)) copies += 1;
+        ImGui::PopButtonRepeat();
+        ImGui::SameLine();
+        ImGui::Text("%d", copies);
+    }
+    ImGui::End();
+
     if(ImGui::Begin("Frame Rate"))
         ImGui::Text((std::to_string(frameRate) + std::string("fps")).c_str());
     ImGui::End();
 
-    if (ImGui::Begin("Copies"))
-        ImGui::Text(std::to_string(copies).c_str());
-    ImGui::End();
-    // ImGui::ShowDemoWindow();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    scene.render(copies);
+    
 }
 
 void Application::resize(int width, int height)
@@ -86,7 +93,6 @@ void Application::keyPressed(int key)
 
 void Application::keyReleased(int key)
 {
-    if ('1' <= key && key <= '9') copies = key - '0';
     keys[key] = false;
 }
 
