@@ -16,6 +16,7 @@ Scene::~Scene()
 {
     if (mesh != NULL)
         delete mesh;
+    cube.free();
 }
 
 void Scene::init()
@@ -27,6 +28,9 @@ void Scene::init()
     currentTime = 0.0f;
 
     camera.init();
+
+    cube.buildCube();
+    cube.sendToOpenGL(basicProgram);
 
     bPolygonFill = true;
 }
@@ -43,7 +47,7 @@ bool Scene::loadMesh(const char *filename)
         std::cout << "min = (" << mesh->aabb.min.x << ", " << mesh->aabb.min.y << ", " << mesh->aabb.min.z << ")" << std::endl;
         std::cout << "max = (" << mesh->aabb.max.x << ", " << mesh->aabb.max.y << ", " << mesh->aabb.max.z << ")" << std::endl;
     }
-    else std::cout << "Couldn't load mesh" << std::endl;
+    else std::cout << "Couldn't load mesh " << filename << std::endl;
     return bSuccess;
 }
 
@@ -96,9 +100,19 @@ void Scene::render(int i, int j, const glm::mat4 &view, const glm::mat4 &project
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
     
     mesh->render();
+    // renderBoundingBox(&model);
 }
 
-bool Scene::insideFrustum(const glm::mat4 &model, const glm::mat4 &view, const glm::mat4 &projection) const {
+// void Scene::renderBoundingBox()
+// {
+//     basicProgram.setUniformMatrix4f("model");
+//     basicProgram.setUniformMatrix4f("view");
+//     basicProgram.setUniformMatrix4f("normalMatrix");
+//     cube.render();
+// }
+
+bool Scene::insideFrustum(const glm::mat4 &model, const glm::mat4 &view, const glm::mat4 &projection) const
+{
     glm::vec3 aabbIncrement = mesh->aabb.max - mesh->aabb.min;
     glm::vec3 aabbMin = mesh->aabb.min;
     for (int x = 0; x <= 1; ++x) {

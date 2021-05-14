@@ -1,10 +1,11 @@
 #include "TriangleMesh.h"
 
 #include <limits>
+
 TriangleMesh::TriangleMesh()
 {
     aabb.min = glm::vec3(std::numeric_limits<float>::max());
-    aabb.max = glm::vec3(std::numeric_limits<float>::min());
+    aabb.max = glm::vec3(-std::numeric_limits<float>::max());
 }
 
 void TriangleMesh::addVertex(const glm::vec3 &position)
@@ -93,6 +94,8 @@ void TriangleMesh::free()
     glDeleteBuffers(1, &vbo);
     glDeleteVertexArrays(1, &vao);
 
+    aabb.min = glm::vec3(std::numeric_limits<float>::max());
+    aabb.max = glm::vec3(std::numeric_limits<float>::min());
     vertices.clear();
     triangles.clear();
 }

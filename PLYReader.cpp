@@ -103,13 +103,12 @@ void PLYReader::loadFaces(std::ifstream &fin, int nFaces, std::vector<int> &plyT
 void PLYReader::rescaleModel(std::vector<float> &plyVertices)
 {
     unsigned int i;
-    glm::vec3 center(0.0f, 0.0f, 0.0f), size[2];
-
+    glm::vec3 size[2];
     size[0] = glm::vec3(1e10, 1e10, 1e10);
     size[1] = glm::vec3(-1e10, -1e10, -1e10);
+
     for (i = 0; i < plyVertices.size(); i += 3)
     {
-        center += glm::vec3(plyVertices[i], plyVertices[i + 1], plyVertices[i + 2]);
         size[0][0] = std::min(size[0][0], plyVertices[i]);
         size[0][1] = std::min(size[0][1], plyVertices[i + 1]);
         size[0][2] = std::min(size[0][2], plyVertices[i + 2]);
@@ -117,7 +116,8 @@ void PLYReader::rescaleModel(std::vector<float> &plyVertices)
         size[1][1] = std::max(size[1][1], plyVertices[i + 1]);
         size[1][2] = std::max(size[1][2], plyVertices[i + 2]);
     }
-    center /= plyVertices.size() / 3;
+
+    glm::vec3 center = size[1] - size[0];
 
     float largestSize = std::max(size[1][0] - size[0][0], std::max(size[1][1] - size[0][1], size[1][2] - size[0][2]));
 
