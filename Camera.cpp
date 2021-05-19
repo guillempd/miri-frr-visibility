@@ -141,6 +141,6 @@ void Camera::updateFrustum()
     frustum.planes[1] = glm::vec4(b, -glm::dot(position, b));
     frustum.planes[2] = glm::vec4(l, -glm::dot(position, l));
     frustum.planes[3] = glm::vec4(r, -glm::dot(position, r));
-    frustum.planes[4] = glm::vec4(-lookDirection, -glm::dot(-lookDirection, position + lookDirection * near));
-    frustum.planes[5] = glm::vec4(lookDirection, -glm::dot(lookDirection, position + lookDirection * far));
+    frustum.planes[4] = glm::vec4(-lookDirection, -glm::dot(position + lookDirection * near, -lookDirection));
+    frustum.planes[5] = glm::vec4(lookDirection, -glm::dot(position + lookDirection * far, lookDirection));
 }

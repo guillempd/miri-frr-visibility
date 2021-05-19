@@ -2,3 +2,8 @@
 23/04/2021: Add floor to scene
 -------------------------------------------
 30/04/2021: Disable V-sync (if possible)
+-------------------------------------------
+19/05/2021: Print performance statistics (FPS, objects drawn, etc)
+19/05/2021: (EXTRA) Perform test with bounding sphere first, then perform test with bounding box (for frustum culling)
+19/05/2021: Implement Coheren Hierarchical Culling
+19/05/2021: Correctly implement frame counter

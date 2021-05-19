@@ -92,24 +92,15 @@ void Scene::render(int i, int j, const glm::mat4 &view, const glm::mat4 &project
 {
     glm::mat4 model(1.0f);
     model = glm::translate(model, glm::vec3(2*i, 0, -2*j));
-    basicProgram.setUniformMatrix4f("model", model);
 
     if (!insideFrustum(model)) return;
 
+    basicProgram.setUniformMatrix4f("model", model);
     glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
     
     mesh->render();
-    // renderBoundingBox(&model);
 }
-
-// void Scene::renderBoundingBox()
-// {
-//     basicProgram.setUniformMatrix4f("model");
-//     basicProgram.setUniformMatrix4f("view");
-//     basicProgram.setUniformMatrix4f("normalMatrix");
-//     cube.render();
-// }
 
 // Simple conservative frustum culling implementation, all computations are made in world space
 // Checks for the existence of a frustum plane that leaves all vertices of the bounding box to the outside side
@@ -128,7 +119,7 @@ bool Scene::insideFrustum(const glm::mat4 &model) const
             for (int y = 0; y <= 1 && allOutside; ++y) {
                 for (int z = 0; z <= 1 && allOutside; ++z) {
                     glm::vec4 aabbCorner = aabbMin + glm::vec4(x, y, z, 1.0f) * aabbIncrement;
-                    if (glm::dot(frustumPlane, aabbCorner) > 0.0f) allOutside = false;
+                    if (glm::dot(frustumPlane, aabbCorner) <= 0.0f) allOutside = false;
                 }
             }
         }
