@@ -94,7 +94,7 @@ void Scene::render(int i, int j, const glm::mat4 &view, const glm::mat4 &project
     model = glm::translate(model, glm::vec3(2*i, 0, -2*j));
     basicProgram.setUniformMatrix4f("model", model);
 
-    if (!insideFrustum(model, view, projection)) return;
+    if (!insideFrustum(model)) return;
 
     glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
@@ -111,30 +111,31 @@ void Scene::render(int i, int j, const glm::mat4 &view, const glm::mat4 &project
 //     cube.render();
 // }
 
-bool Scene::insideFrustum(const glm::mat4 &model, const glm::mat4 &view, const glm::mat4 &projection) const
+// Simple conservative frustum culling implementation, all computations are made in world space
+// Checks for the existence of a frustum plane that leaves all vertices of the bounding box to the outside side
+// Might return false positives
+// For more information see: https://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
+bool Scene::insideFrustum(const glm::mat4 &model) const
 {
-    glm::vec3 aabbIncrement = mesh->aabb.max - mesh->aabb.min;
-    glm::vec3 aabbMin = mesh->aabb.min;
-    for (int x = 0; x <= 1; ++x) {
-        for (int y = 0; y <= 1; ++y) {
-            for (int z = 0; z <= 1; ++z) {
-                glm::vec3 aabbCorner = aabbMin + glm::vec3(x, y, z) * aabbIncrement;
-                if (insideFrustum(aabbCorner, model, view, projection)) return true;
+    const Frustum &frustum = camera.getFrustum();
+    glm::vec4 aabbMin = model * glm::vec4(mesh->aabb.min, 1.0f);
+    glm::vec4 aabbIncrement = model * glm::vec4(mesh->aabb.max - mesh->aabb.min, 0.0f);
+
+    for (int i = 0; i < frustum.planes.size(); ++i) {
+        glm::vec4 frustumPlane = frustum.planes[i];
+        bool allOutside = true;
+        for (int x = 0; x <= 1 && allOutside; ++x) {
+            for (int y = 0; y <= 1 && allOutside; ++y) {
+                for (int z = 0; z <= 1 && allOutside; ++z) {
+                    glm::vec4 aabbCorner = aabbMin + glm::vec4(x, y, z, 1.0f) * aabbIncrement;
+                    if (glm::dot(frustumPlane, aabbCorner) > 0.0f) allOutside = false;
+                }
             }
         }
+        if (allOutside) return false;
     }
-    return false;
-}
-
-bool Scene::insideFrustum(const glm::vec3 &point, const glm::mat4 &model, const glm::mat4 &view, const glm::mat4 &projection) const {
-    glm::vec4 clip = projection * view * model * glm::vec4(point, 1.0);
-    if (glm::abs(clip.x) > clip.w) return false;
-    if (glm::abs(clip.y) > clip.w) return false;
-    if (glm::abs(clip.z) > clip.w) return false;
     return true;
 }
-
-
 
 Camera &Scene::getCamera()
 {

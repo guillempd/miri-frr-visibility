@@ -1,2 +1,4 @@
-13/03/2021: Configure vs code to correctly build (and debug?)
-13/03/2021: Fix scroll wheel bug
+23/04/2021: Hide ImGui in capture mode
+23/04/2021: Add floor to scene
+-------------------------------------------
+30/04/2021: Disable V-sync (if possible)
