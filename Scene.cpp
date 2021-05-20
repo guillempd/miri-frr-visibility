@@ -57,7 +57,7 @@ void Scene::update(int deltaTime)
     camera.update(deltaTime);
 }
 
-int Scene::render(int n)
+int Scene::render(int n, bool frustumCulling, bool occlusionCulling)
 {
     int rendered = 0;
     const glm::mat4 &view = camera.getViewMatrix();
@@ -79,7 +79,7 @@ int Scene::render(int n)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         for (int i = 0; i < n; ++i)
             for (int j = 0; j < n; ++j)
-                if (render(i, j)) ++rendered;
+                if (render(i, j, frustumCulling, occlusionCulling)) ++rendered;
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDisable(GL_POLYGON_OFFSET_FILL);
         basicProgram.setUniform4f("color", 0.0f, 0.0f, 0.0f, 1.0f);
@@ -87,15 +87,16 @@ int Scene::render(int n)
 
     for (int i = 0; i < n; ++i)
         for (int j = 0; j < n; ++j)
-            if (render(i, j)) ++rendered;
+            if (render(i, j, frustumCulling, occlusionCulling)) ++rendered;
 
     return rendered;           
 }
 
-bool Scene::render(int i, int j)
+bool Scene::render(int i, int j, bool frustumCulling, bool occlusionCulling)
 {
     const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(2*i, 0, -2*j));
-    if (!insideFrustum(model)) return false;
+    
+    if (frustumCulling && !insideFrustum(model)) return false;
 
     const glm::mat4 &view = camera.getViewMatrix();
     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));

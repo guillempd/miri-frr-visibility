@@ -69,15 +69,21 @@ void Application::render()
     }
     ImGui::End();
 
+    if (ImGui::Begin("Enable optimizations")) {
+        ImGui::Checkbox("Enable/Disable Frustum Culling", &frustumCulling);
+        ImGui::Checkbox("Enable/Disable Occlusion Culling", &occlusionCulling);
+    }
+    ImGui::End();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    int rendered = scene.render(copies);
+    int rendered = scene.render(copies, frustumCulling, occlusionCulling);
 
     if (ImGui::Begin("Performance Statistics")) {
         ImGui::Text((std::to_string(frameRate) + std::string("fps")).c_str());
         ImGui::Text(("Rendered copies: " + std::to_string(rendered)).c_str());
     }
     ImGui::End();
+
     
 }
 

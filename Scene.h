@@ -19,7 +19,7 @@ public:
     void init();
     bool loadMesh(const char *filename);
     void update(int deltaTime);
-    int render(int n);
+    int render(int n, bool frustumCulling, bool occlusionCulling);
 
     Camera &getCamera();
 
@@ -29,7 +29,7 @@ private:
     void initShaders();
     void computeModelViewMatrix();
 
-    bool render(int i, int j);
+    bool render(int i, int j, bool frustumCulling, bool occlusionCulling);
     bool insideFrustum(const glm::mat4 &model) const;
 
 private:
