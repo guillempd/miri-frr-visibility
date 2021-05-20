@@ -69,12 +69,15 @@ void Application::render()
     }
     ImGui::End();
 
-    if(ImGui::Begin("Frame Rate"))
-        ImGui::Text((std::to_string(frameRate) + std::string("fps")).c_str());
-    ImGui::End();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    scene.render(copies);
+    int rendered = scene.render(copies);
+
+    if (ImGui::Begin("Performance Statistics")) {
+        ImGui::Text((std::to_string(frameRate) + std::string("fps")).c_str());
+        ImGui::Text(("Rendered copies: " + std::to_string(rendered)).c_str());
+    }
+    ImGui::End();
     
 }
 

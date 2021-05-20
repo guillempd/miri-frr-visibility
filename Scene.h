@@ -19,7 +19,7 @@ public:
     void init();
     bool loadMesh(const char *filename);
     void update(int deltaTime);
-    void render(int n);
+    int render(int n);
 
     Camera &getCamera();
 
@@ -29,10 +29,8 @@ private:
     void initShaders();
     void computeModelViewMatrix();
 
-    void render(int i, int j, const glm::mat4 &view, const glm::mat4 &projection);
-    void renderBoundingBox();
+    bool render(int i, int j);
     bool insideFrustum(const glm::mat4 &model) const;
-    // bool insideFrustum(const glm::vec3 &point, const glm::mat4 &model, const glm::mat4 &view, const glm::mat4 &projection) const;
 
 private:
     Camera camera;

@@ -57,8 +57,9 @@ void Scene::update(int deltaTime)
     camera.update(deltaTime);
 }
 
-void Scene::render(int n)
+int Scene::render(int n)
 {
+    int rendered = 0;
     const glm::mat4 &view = camera.getViewMatrix();
     const glm::mat4 &projection = camera.getProjectionMatrix();
     basicProgram.use();
@@ -78,28 +79,32 @@ void Scene::render(int n)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         for (int i = 0; i < n; ++i)
             for (int j = 0; j < n; ++j)
-                render(i, j, view, projection);
+                if (render(i, j)) ++rendered;
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDisable(GL_POLYGON_OFFSET_FILL);
         basicProgram.setUniform4f("color", 0.0f, 0.0f, 0.0f, 1.0f);
     }
+
     for (int i = 0; i < n; ++i)
         for (int j = 0; j < n; ++j)
-            render(i, j, view, projection);            
+            if (render(i, j)) ++rendered;
+
+    return rendered;           
 }
 
-void Scene::render(int i, int j, const glm::mat4 &view, const glm::mat4 &projection)
+bool Scene::render(int i, int j)
 {
-    glm::mat4 model(1.0f);
-    model = glm::translate(model, glm::vec3(2*i, 0, -2*j));
+    const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(2*i, 0, -2*j));
+    if (!insideFrustum(model)) return false;
 
-    if (!insideFrustum(model)) return;
+    const glm::mat4 &view = camera.getViewMatrix();
+    const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
 
     basicProgram.setUniformMatrix4f("model", model);
-    glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
     
     mesh->render();
+    return true;
 }
 
 // Simple conservative frustum culling implementation, all computations are made in world space
