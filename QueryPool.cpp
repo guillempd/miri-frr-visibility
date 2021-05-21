@@ -11,9 +11,9 @@ QueryPool::~QueryPool()
     glDeleteQueries(ids.size(), ids.data());
 }
 
-Query QueryPool::getQuery()
+Query QueryPool::getQuery(const glm::ivec2 &gridCoordinates)
 {
-    return Query(ids[i++]);
+    return Query(ids[i++], gridCoordinates);
 }
 
 void QueryPool::clear()

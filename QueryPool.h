@@ -3,6 +3,8 @@
 
 #include "Query.h"
 
+#include "glm/glm.hpp"
+
 #include "GL/glew.h"
 #include "GL/gl.h"
 
@@ -13,7 +15,7 @@ class QueryPool
 public:
     QueryPool(int n);
     ~QueryPool();
-    Query getQuery();
+    Query getQuery(const glm::ivec2 &gridCoordinates);
     void clear();
 private:
     std::vector<GLuint> ids;

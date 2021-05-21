@@ -27,6 +27,7 @@ public:
     const glm::mat4 &getProjectionMatrix() const;
     const glm::mat4 &getViewMatrix() const;
     const Frustum &getFrustum() const;
+    const glm::vec3 &getPosition() const {return position;}
 private:
     void moveForward(float input, float deltaTime);
     void moveRight(float input, float deltaTime);

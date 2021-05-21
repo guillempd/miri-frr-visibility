@@ -7,3 +7,4 @@
 19/05/2021: (EXTRA) Perform test with bounding sphere first, then perform test with bounding box (for frustum culling)
 19/05/2021: Implement Coheren Hierarchical Culling
 19/05/2021: Correctly implement frame counter
+21/05/2021: Make constant n = 16 in the scene

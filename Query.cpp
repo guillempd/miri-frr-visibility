@@ -1,7 +1,8 @@
 #include "Query.h"
 
-Query::Query(int id)
+Query::Query(int id, const glm::ivec2 &gridCoordinates)
     : id(id)
+    , gridCoordinates(gridCoordinates)
     {}
 
 // TODO: Check this works as expected
@@ -28,4 +29,9 @@ bool Query::isVisible() const
     int param;
     glGetQueryObjectiv(id, GL_QUERY_RESULT, &param);
     return param;
+}
+
+glm::ivec2 Query::getPosition() const
+{
+    return gridCoordinates;
 }
