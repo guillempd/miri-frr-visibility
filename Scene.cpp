@@ -94,8 +94,8 @@ int Scene::render(int n, bool frustumCulling, bool occlusionCulling)
 
 bool Scene::render(int i, int j, bool frustumCulling, bool occlusionCulling)
 {
-    const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(2*i, 0, -2*j));
-    
+    const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(i, 0, -j));
+
     if (frustumCulling && !insideFrustum(model)) return false;
 
     const glm::mat4 &view = camera.getViewMatrix();
