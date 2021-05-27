@@ -22,6 +22,7 @@ public:
     void addTriangle(int v0, int v1, int v2);
 
     void buildCube();
+    void buildQuad();
 
     void sendToOpenGL(ShaderProgram &program);
     void render() const;

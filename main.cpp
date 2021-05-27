@@ -12,8 +12,6 @@
 //Remove console (only works in Visual Studio)
 #pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
 
-#define TIME_PER_FRAME 1000.f/60.f // Approx. 60 fps
-
 #define GLUT_SCROLL_UP      0x0003
 #define GLUT_SCROLL_DOWN    0x0004
 
@@ -154,13 +152,10 @@ static void idleCallback()
     int currentTime = glutGet(GLUT_ELAPSED_TIME);
     int deltaTime = currentTime - prevTime;
 
-    if (deltaTime > TIME_PER_FRAME)
-    {
-        // Every time we enter here is equivalent to a game loop execution
-        if (!Application::instance().update(deltaTime)) glutLeaveMainLoop();
-        prevTime = currentTime;
-        glutPostRedisplay();
-    }
+    // Every time we enter here is equivalent to a game loop execution
+    if (!Application::instance().update(deltaTime)) glutLeaveMainLoop();
+    prevTime = currentTime;
+    glutPostRedisplay();
 }
 
 int main(int argc, char **argv)

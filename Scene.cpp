@@ -23,6 +23,7 @@ Scene::~Scene()
     if (mesh != NULL)
         delete mesh;
     cube.free();
+    floor.free();
 }
 
 void Scene::init()
@@ -43,6 +44,14 @@ void Scene::init()
 
     cube.buildCube();
     cube.sendToOpenGL(basicProgram);
+
+    floor.buildQuad();
+    floor.sendToOpenGL(basicProgram);
+
+    floorModel = glm::mat4(1.0f);
+    floorModel = glm::translate(floorModel, glm::vec3(n/2 - 0.5, -0.5f, -n/2 + 0.5));
+    floorModel = glm::rotate(floorModel, glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
+    floorModel = glm::scale(floorModel, glm::vec3(n));
 
     bPolygonFill = true;
 
@@ -93,10 +102,11 @@ int Scene::render()
     basicProgram.setUniform1i("bLighting", bPolygonFill ? 1 : 0);
     basicProgram.setUniform4f("color", 0.9f, 0.9f, 0.95f, 1.0f);
 
-    if (frustumCulling) return renderFrustumCulling();
+    renderFloor();
+    if (frustumCulling && occlusionCulling) return renderUltimate(); 
+    else if (occlusionCulling) return renderOcclusionCulling();
+    else if (frustumCulling) return renderFrustumCulling();
     else return renderBasic();
-    
-    // if (occlusionCulling) return renderWithOcclusionCulling();          
 }
 
 int Scene::renderBasic()
@@ -124,27 +134,70 @@ int Scene::renderFrustumCulling()
     return rendered;
 }
 
+// Stop and wait occlusion culling method
+int Scene::renderOcclusionCulling()
+{
+    int rendered = 0;
+    GLuint id;
+    glGenQueries(1, &id);
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            glm::ivec2 gridPosition(i, j);
+
+            glBeginQuery(GL_ANY_SAMPLES_PASSED, id);
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+            glDepthMask(GL_FALSE);
+            renderBoundingBox(gridPosition, false);
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            glDepthMask(GL_TRUE);
+            glEndQuery(GL_ANY_SAMPLES_PASSED);
+
+            GLint visible;
+            glGetQueryObjectiv(id, GL_QUERY_RESULT, &visible);
+            if (visible == GL_TRUE) {
+                render(gridPosition);
+                ++rendered;
+            }
+        }
+    }
+    glDeleteQueries(1, &id);
+    return rendered;
+}
+
+// TODO: Combine Frustum Culling + Occlusion Culling for ultimate performance
+int Scene::renderUltimate()
+{
+    int rendered = 0;
+    GLuint id;
+    glGenQueries(1, &id);
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            glm::ivec2 gridPosition(i, j);
+            if (!insideFrustum(gridPosition)) continue;
+
+            glBeginQuery(GL_ANY_SAMPLES_PASSED, id);
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+            glDepthMask(GL_FALSE);
+            renderBoundingBox(gridPosition, false);
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            glDepthMask(GL_TRUE);
+            glEndQuery(GL_ANY_SAMPLES_PASSED);
+
+            GLint visible;
+            glGetQueryObjectiv(id, GL_QUERY_RESULT, &visible);
+            if (visible == GL_TRUE) {
+                render(gridPosition);
+                ++rendered;
+            }
+        }
+    }
+    glDeleteQueries(1, &id);
+    return rendered;
+}
+
 glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)
 {
     return glm::vec3(gridPosition.x, 0, -gridPosition.y);
-}
-
-// TODO: Can make this more efficient by reducing uniform passing since they are already passed in some cases
-void Scene::renderBoundingBox(const glm::ivec2 &gridPosition)
-{
-    const AABB &aabb = mesh->aabb;
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, worldPosition(gridPosition));
-    model = glm::scale(model, aabb.max - aabb.min);
-    const glm::mat4 &view = camera.getViewMatrix();
-    const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
-
-    basicProgram.setUniformMatrix4f("model", model);
-    basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    cube.render();
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void Scene::render(const glm::ivec2 &gridPosition)
@@ -156,8 +209,35 @@ void Scene::render(const glm::ivec2 &gridPosition)
     basicProgram.setUniformMatrix4f("model", model);
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
     
-    if (debug) renderBoundingBox(gridPosition);
     mesh->render();
+    if (debug) renderBoundingBox(gridPosition, true);
+}
+
+// TODO: Can make this more efficient by reducing uniform passing since they are already passed in some cases
+void Scene::renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe)
+{
+    const AABB &aabb = mesh->aabb;
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, worldPosition(gridPosition));
+    model = glm::scale(model, aabb.max - aabb.min);
+    const glm::mat4 &view = camera.getViewMatrix();
+    const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+
+    basicProgram.setUniformMatrix4f("model", model);
+    basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
+
+    if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    cube.render();
+    if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void Scene::renderFloor()
+{
+    const glm::mat4 &view = camera.getViewMatrix();
+    const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * floorModel));
+    basicProgram.setUniformMatrix4f("model", floorModel);
+    basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
+    floor.render();
 }
 
 // Simple conservative frustum culling implementation, all computations are made in world space
@@ -185,28 +265,6 @@ bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
     }
     return true;
 }
-
-
-
-// TODO: This should render the bounding cube
-// void Scene::renderQueryBox(const glm::ivec2 &position)
-// {
-//     // glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-//     // glDepthMask(GL_FALSE);
-
-//     const glm::mat4 model = glm::translate(glm::mat4(1.0f), objectPosition(position));
-//     const glm::mat4 &view = camera.getViewMatrix();
-//     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
-
-//     basicProgram.setUniformMatrix4f("model", model);
-//     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
-    
-//     mesh->render();
-
-//     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-//     glDepthMask(GL_TRUE);
-// }
-
 
 // struct ComparisonFunction
 // {

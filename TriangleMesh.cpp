@@ -50,6 +50,18 @@ void TriangleMesh::buildCube()
         addTriangle(faces[3 * i], faces[3 * i + 1], faces[3 * i + 2]);
 }
 
+void TriangleMesh::buildQuad()
+{
+    addVertex(0.5f * glm::vec3(-1, -1, 0));
+    addVertex(0.5f * glm::vec3(1, -1, 0));
+    addVertex(0.5f * glm::vec3(-1, 1, 0));
+    addVertex(0.5f * glm::vec3(1, 1, 0));
+    addTriangle(0, 1, 2);
+    addTriangle(2, 1, 3);
+    addTriangle(2, 1, 0);
+    addTriangle(3, 1, 2);
+}
+
 void TriangleMesh::sendToOpenGL(ShaderProgram &program)
 {
     std::vector<float> data;

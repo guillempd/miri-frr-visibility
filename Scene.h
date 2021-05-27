@@ -42,12 +42,13 @@ private:
     // Scene rendering algorithms
     int renderBasic();
     int renderFrustumCulling();
-    // int renderWithOcclusionCulling();
+    int renderOcclusionCulling();
+    int renderUltimate();
 
     // Objects rendering
     void render(const glm::ivec2 &position);
-    void renderBoundingBox(const glm::ivec2 &position);
-    // void renderQueryBox(const glm::ivec2 &position);
+    void renderBoundingBox(const glm::ivec2 &position, bool wireframe);
+    void renderFloor();
 
     bool insideFrustum(const glm::ivec2 &gridPosition) const;
 
@@ -57,8 +58,10 @@ private:
     Camera camera;
     TriangleMesh *mesh;
     TriangleMesh cube;
+    TriangleMesh floor;
     ShaderProgram basicProgram;
     float currentTime;
+    glm::mat4 floorModel;
 
     bool bPolygonFill;
 
