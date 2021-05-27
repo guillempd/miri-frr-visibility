@@ -55,10 +55,6 @@ private:
     int accumulatedDeltaTime;
     float frameRate;
     float mouseSensitivity;
-
-    int copies;
-    bool frustumCulling;
-    bool occlusionCulling;
 };
 
 #endif // _APPLICATION_INCLUDE

@@ -27,8 +27,6 @@ void Application::init()
     accumulatedDeltaTime = 0;
     frameRate = 0.0f;
 
-    copies = 1;
-
     mouseSensitivity = 0.05f;
 }
 
@@ -58,25 +56,8 @@ void Application::updateFrameRate(int deltaTime)
 
 void Application::render()
 {
-    if (ImGui::Begin("Scene Size")) {
-        ImGui::PushButtonRepeat(true);
-        if (ImGui::ArrowButton("##left", ImGuiDir_Left)) copies = (--copies > 0 ? copies : 0);
-        ImGui::SameLine();
-        if (ImGui::ArrowButton("##right", ImGuiDir_Right)) copies += 1;
-        ImGui::PopButtonRepeat();
-        ImGui::SameLine();
-        ImGui::Text("%d", copies);
-    }
-    ImGui::End();
-
-    if (ImGui::Begin("Enable optimizations")) {
-        ImGui::Checkbox("Enable/Disable Frustum Culling", &frustumCulling);
-        ImGui::Checkbox("Enable/Disable Occlusion Culling", &occlusionCulling);
-    }
-    ImGui::End();
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    int rendered = scene.render(copies, frustumCulling, occlusionCulling);
+    int rendered = scene.render();
 
     if (ImGui::Begin("Performance Statistics")) {
         ImGui::Text((std::to_string(frameRate) + std::string("fps")).c_str());

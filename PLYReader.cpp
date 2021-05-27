@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -102,26 +103,18 @@ void PLYReader::loadFaces(std::ifstream &fin, int nFaces, std::vector<int> &plyT
 
 void PLYReader::rescaleModel(std::vector<float> &plyVertices)
 {
-    unsigned int i;
-    glm::vec3 size[2];
-    size[0] = glm::vec3(1e10, 1e10, 1e10);
-    size[1] = glm::vec3(-1e10, -1e10, -1e10);
+    glm::vec3 min(std::numeric_limits<float>::max());
+    glm::vec3 max(-std::numeric_limits<float>::max());
 
-    for (i = 0; i < plyVertices.size(); i += 3)
+    for (std::size_t i = 0; i < plyVertices.size(); i += 3)
     {
-        size[0][0] = std::min(size[0][0], plyVertices[i]);
-        size[0][1] = std::min(size[0][1], plyVertices[i + 1]);
-        size[0][2] = std::min(size[0][2], plyVertices[i + 2]);
-        size[1][0] = std::max(size[1][0], plyVertices[i]);
-        size[1][1] = std::max(size[1][1], plyVertices[i + 1]);
-        size[1][2] = std::max(size[1][2], plyVertices[i + 2]);
+        min = glm::min(min, glm::vec3(plyVertices[i], plyVertices[i+1], plyVertices[i+2]));
+        max = glm::max(max, glm::vec3(plyVertices[i], plyVertices[i+1], plyVertices[i+2]));
     }
 
-    glm::vec3 center = size[1] - size[0];
-
-    float largestSize = std::max(size[1][0] - size[0][0], std::max(size[1][1] - size[0][1], size[1][2] - size[0][2]));
-
-    for (i = 0; i < plyVertices.size(); i += 3)
+    glm::vec3 center = (min + max) / 2.0f;
+    float largestSize = std::max(max.x - min.x, std::max(max.y - min.y, max.z - min.z));
+    for (std::size_t i = 0; i < plyVertices.size(); i += 3)
     {
         plyVertices[i] = (plyVertices[i] - center[0]) / largestSize;
         plyVertices[i + 1] = (plyVertices[i + 1] - center[1]) / largestSize;
@@ -131,10 +124,8 @@ void PLYReader::rescaleModel(std::vector<float> &plyVertices)
 
 void PLYReader::addModelToMesh(const std::vector<float> &plyVertices, const std::vector<int> &plyTriangles, TriangleMesh &mesh)
 {
-    unsigned int i;
-
-    for (i = 0; i < plyVertices.size(); i += 3)
+    for (std::size_t i = 0; i < plyVertices.size(); i += 3)
         mesh.addVertex(glm::vec3(plyVertices[i], plyVertices[i + 1], plyVertices[i + 2]));
-    for (i = 0; i < plyTriangles.size(); i += 3)
+    for (std::size_t i = 0; i < plyTriangles.size(); i += 3)
         mesh.addTriangle(plyTriangles[i], plyTriangles[i + 1], plyTriangles[i + 2]);
 }

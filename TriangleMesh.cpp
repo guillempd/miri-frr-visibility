@@ -22,6 +22,8 @@ void TriangleMesh::addTriangle(int v0, int v1, int v2)
     triangles.push_back(v2);
 }
 
+
+// Cube of side 2, centered at the origin
 void TriangleMesh::buildCube()
 {
     float vertices[] = {-1, -1, -1,

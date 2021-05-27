@@ -30,7 +30,7 @@ public:
     void init();
     bool loadMesh(const char *filename);
     void update(int deltaTime);
-    int render(int n, bool frustumCulling, bool occlusionCulling);
+    int render();
 
     Camera &getCamera();
 
@@ -38,16 +38,20 @@ public:
 
 private:
     void initShaders();
-    void computeModelViewMatrix();
 
-    bool render(int i, int j, bool frustumCulling, bool occlusionCulling);
-    void render(glm::ivec2 position);
-    void renderQueryBox(glm::ivec2 position);
+    // Scene rendering algorithms
+    int renderBasic();
+    int renderFrustumCulling();
+    // int renderWithOcclusionCulling();
 
-    bool insideFrustum(const glm::mat4 &model) const;
-    void computeVisibility();
+    // Objects rendering
+    void render(const glm::ivec2 &position);
+    void renderBoundingBox(const glm::ivec2 &position);
+    // void renderQueryBox(const glm::ivec2 &position);
 
-    int renderWithOcclusionCulling();
+    bool insideFrustum(const glm::ivec2 &gridPosition) const;
+
+    static glm::vec3 worldPosition(const glm::ivec2 &gridPosition);
 
 private:
     Camera camera;
@@ -58,6 +62,10 @@ private:
 
     bool bPolygonFill;
 
+    // Scene rendering data
+    bool debug;
+    bool frustumCulling;
+    bool occlusionCulling;
     int n;
 
     // Occlusion culling data

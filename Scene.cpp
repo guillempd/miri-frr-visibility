@@ -4,6 +4,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
+#include "imgui.h"
+
 #include "Scene.h"
 #include "PLYReader.h"
 
@@ -26,6 +28,9 @@ Scene::~Scene()
 void Scene::init()
 {
     n = 16;
+    frustumCulling = false;
+    occlusionCulling = false;
+    debug = false;
 
     initShaders();
     
@@ -42,8 +47,8 @@ void Scene::init()
     bPolygonFill = true;
 
     entities = std::vector<std::vector<Entity>>(n, std::vector<Entity>(n));
-    for (int i = 0; i < 16; ++i) {
-        for (int j = 0; j < 16; ++j) {
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
             entities[i][j].wasVisible = true;
         }
     }
@@ -71,8 +76,14 @@ void Scene::update(int deltaTime)
     camera.update(deltaTime);
 }
 
-int Scene::render(int n, bool frustumCulling, bool occlusionCulling)
+int Scene::render()
 {
+    if (ImGui::Begin("Settings")) {
+        ImGui::Checkbox("Enable/Disable Frustum Culling", &frustumCulling);
+        ImGui::Checkbox("Enable/Disable Occlusion Culling", &occlusionCulling);
+        ImGui::Checkbox("Enable/Disable Debug Mode", &debug);
+    }
+    ImGui::End();
 
     const glm::mat4 &view = camera.getViewMatrix();
     const glm::mat4 &projection = camera.getProjectionMatrix();
@@ -81,60 +92,86 @@ int Scene::render(int n, bool frustumCulling, bool occlusionCulling)
     basicProgram.setUniformMatrix4f("projection", projection);
     basicProgram.setUniform1i("bLighting", bPolygonFill ? 1 : 0);
     basicProgram.setUniform4f("color", 0.9f, 0.9f, 0.95f, 1.0f);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    if (occlusionCulling) return renderWithOcclusionCulling();
 
-    int rendered = 0;
-    if (!bPolygonFill)
-    {
-        basicProgram.setUniform4f("color", 1.0f, 1.0f, 1.0f, 1.0f);
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(0.5f, 1.0f);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        for (int i = 0; i < n; ++i)
-            for (int j = 0; j < n; ++j)
-                if (render(i, j, frustumCulling, occlusionCulling)) ++rendered;
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glDisable(GL_POLYGON_OFFSET_FILL);
-        basicProgram.setUniform4f("color", 0.0f, 0.0f, 0.0f, 1.0f);
-    }
-
-
-    for (int i = 0; i < n; ++i)
-        for (int j = 0; j < n; ++j)
-            if (render(i, j, frustumCulling, occlusionCulling)) ++rendered;
-
-    return rendered;           
+    if (frustumCulling) return renderFrustumCulling();
+    else return renderBasic();
+    
+    // if (occlusionCulling) return renderWithOcclusionCulling();          
 }
 
-bool Scene::render(int i, int j, bool frustumCulling, bool occlusionCulling)
+int Scene::renderBasic()
 {
-    const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(i, 0, -j));
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            render(glm::ivec2(i, j));
+        }
+    }
+    return n * n;
+}
 
-    if (frustumCulling && !insideFrustum(model)) return false;
+int Scene::renderFrustumCulling()
+{
+    int rendered = 0;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            glm::ivec2 gridPosition(i, j);
+            if (insideFrustum(gridPosition)) {
+                render(gridPosition);
+                ++rendered;
+            }
+        }
+    }
+    return rendered;
+}
 
+glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)
+{
+    return glm::vec3(gridPosition.x, 0, -gridPosition.y);
+}
+
+// TODO: Can make this more efficient by reducing uniform passing since they are already passed in some cases
+void Scene::renderBoundingBox(const glm::ivec2 &gridPosition)
+{
+    const AABB &aabb = mesh->aabb;
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, worldPosition(gridPosition));
+    model = glm::scale(model, aabb.max - aabb.min);
+    const glm::mat4 &view = camera.getViewMatrix();
+    const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+
+    basicProgram.setUniformMatrix4f("model", model);
+    basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    cube.render();
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void Scene::render(const glm::ivec2 &gridPosition)
+{
+    const glm::mat4 model = glm::translate(glm::mat4(1.0f), worldPosition(gridPosition));
     const glm::mat4 &view = camera.getViewMatrix();
     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
 
     basicProgram.setUniformMatrix4f("model", model);
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
     
+    if (debug) renderBoundingBox(gridPosition);
     mesh->render();
-    return true;
 }
 
 // Simple conservative frustum culling implementation, all computations are made in world space
 // Checks for the existence of a frustum plane that leaves all vertices of the bounding box to the outside side
 // Might return false positives
 // For more information see: https://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
-bool Scene::insideFrustum(const glm::mat4 &model) const
+bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
 {
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), worldPosition(gridPosition));
     const Frustum &frustum = camera.getFrustum();
     glm::vec4 aabbMin = model * glm::vec4(mesh->aabb.min, 1.0f);
     glm::vec4 aabbIncrement = model * glm::vec4(mesh->aabb.max - mesh->aabb.min, 0.0f);
 
-    for (int i = 0; i < frustum.planes.size(); ++i) {
-        glm::vec4 frustumPlane = frustum.planes[i];
+    for (const glm::vec4 &frustumPlane : frustum.planes) {
         bool allOutside = true;
         for (int x = 0; x <= 1 && allOutside; ++x) {
             for (int y = 0; y <= 1 && allOutside; ++y) {
@@ -149,116 +186,99 @@ bool Scene::insideFrustum(const glm::mat4 &model) const
     return true;
 }
 
-// TODO: This should be private member of scene
-static glm::vec3 objectPosition(glm::ivec2 position)
-{
-    return glm::vec3(position.x, 0, -position.y);
-}
 
-
-void Scene::render(glm::ivec2 position)
-{
-    const glm::mat4 model = glm::translate(glm::mat4(1.0f), objectPosition(position));
-    const glm::mat4 &view = camera.getViewMatrix();
-    const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
-
-    basicProgram.setUniformMatrix4f("model", model);
-    basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
-    
-    mesh->render();
-}
 
 // TODO: This should render the bounding cube
-void Scene::renderQueryBox(glm::ivec2 position)
-{
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    glDepthMask(GL_FALSE);
+// void Scene::renderQueryBox(const glm::ivec2 &position)
+// {
+//     // glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+//     // glDepthMask(GL_FALSE);
 
-    const glm::mat4 model = glm::translate(glm::mat4(1.0f), objectPosition(position));
-    const glm::mat4 &view = camera.getViewMatrix();
-    const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+//     const glm::mat4 model = glm::translate(glm::mat4(1.0f), objectPosition(position));
+//     const glm::mat4 &view = camera.getViewMatrix();
+//     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
 
-    basicProgram.setUniformMatrix4f("model", model);
-    basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
+//     basicProgram.setUniformMatrix4f("model", model);
+//     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
     
-    mesh->render();
+//     mesh->render();
 
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glDepthMask(GL_TRUE);
-}
+//     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+//     glDepthMask(GL_TRUE);
+// }
 
 
-struct ComparisonFunction
-{
-    bool operator()(const std::pair<float, glm::ivec2> &lhs, const std::pair<float, glm::ivec2> &rhs)
-    {
-        return lhs.first < rhs.first;
-    }
-};
+// struct ComparisonFunction
+// {
+//     bool operator()(const std::pair<float, glm::ivec2> &lhs, const std::pair<float, glm::ivec2> &rhs)
+//     {
+//         return lhs.first < rhs.first;
+//     }
+// };
 
-int Scene::renderWithOcclusionCulling()
-{
-    const int n = 16;
-    int rendered = 0;
-    glm::vec3 cameraPosition = camera.getPosition();
+// int Scene::renderWithOcclusionCulling()
+// {
+//     const int n = 16;
+//     int rendered = 0;
+//     glm::vec3 cameraPosition = camera.getPosition();
 
-    // Resolve previous frame queries
-    while (!previousFrameQueries.empty()) {
-        const Query &query = previousFrameQueries.front();
-        previousFrameQueries.pop();
-        glm::ivec2 position = query.getPosition();
-        entities[position.x][position.y].wasVisible = query.isVisible();
-    }
-    queryPool.clear();
+//     // Resolve previous frame queries
+//     while (!previousFrameQueries.empty()) {
+//         const Query &query = previousFrameQueries.front();
+//         previousFrameQueries.pop();
+//         glm::ivec2 position = query.getPosition();
+//         entities[position.x][position.y].wasVisible = query.isVisible();
+//     }
+//     queryPool.clear();
 
-    // Render front to back
-    std::vector<std::pair<float, glm::ivec2>> entitiesPosition;
-    entities.reserve(n * n);
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            glm::vec3 displacement = objectPosition(glm::ivec2(i, j)) - cameraPosition;
-            float distanceSq = glm::dot(displacement, displacement);
-            entitiesPosition.push_back(std::make_pair(distanceSq, glm::ivec2(i, j)));
-        }
-    }
-    ComparisonFunction func;
-    std::sort(entitiesPosition.begin(), entitiesPosition.end(), func);
+//     // Render front to back
+//     std::vector<std::pair<float, glm::ivec2>> entitiesPosition;
+//     entities.reserve(n * n);
+//     for (int i = 0; i < n; ++i) {
+//         for (int j = 0; j < n; ++j) {
+//             glm::vec3 displacement = objectPosition(glm::ivec2(i, j)) - cameraPosition;
+//             float distanceSq = glm::dot(displacement, displacement);
+//             entitiesPosition.push_back(std::make_pair(distanceSq, glm::ivec2(i, j)));
+//         }
+//     }
+//     ComparisonFunction func;
+//     std::sort(entitiesPosition.begin(), entitiesPosition.end(), func);
 
-    std::queue<Query> currentFrameQueries;
-    for (auto entityPosition : entitiesPosition) {
-        glm::ivec2 position = entityPosition.second;
-        Entity entity = entities[position.x][position.y];
-        if (entity.wasVisible) {
-            Query query = queryPool.getQuery(position);
-            query.begin();
-            render(position);
-            ++rendered;
-            query.end();
-            previousFrameQueries.push(query);
-        }
-        else {
-            Query query = queryPool.getQuery(position);
-            query.begin();
-            renderQueryBox(position);
-            query.end();
-            currentFrameQueries.push(query);
-        }
-    }
+//     std::queue<Query> currentFrameQueries;
+//     for (auto entityPosition : entitiesPosition) {
+//         glm::ivec2 position = entityPosition.second;
+//         Entity entity = entities[position.x][position.y];
+//         if (entity.wasVisible) {
+//             Query query = queryPool.getQuery(position);
+//             query.begin();
+//             render(position);
+//             ++rendered;
+//             query.end();
+//             previousFrameQueries.push(query);
+//         }
+//         else {
+//             Query query = queryPool.getQuery(position);
+//             query.begin();
+//             renderQueryBox(position);
+//             query.end();
+//             currentFrameQueries.push(query);
+//         }
+//     }
 
-    // Resolve this frame queries and possibly render the few remaining
-    while (!currentFrameQueries.empty()) {
-        const Query &query = currentFrameQueries.front();
-        currentFrameQueries.pop();
-        if (query.isVisible()) {
-            glm::ivec2 position = query.getPosition();
-            entities[position.x][position.y].wasVisible = true;
-            render(position);
-            ++rendered;
-        }
-    }
+//     // Resolve this frame queries and possibly render the few remaining
+//     while (!currentFrameQueries.empty()) {
+//         const Query &query = currentFrameQueries.front();
+//         currentFrameQueries.pop();
+//         if (query.isVisible()) {
+//             glm::ivec2 position = query.getPosition();
+//             entities[position.x][position.y].wasVisible = true;
+//             render(position);
+//             ++rendered;
+//         }
+//     }
 
-    return rendered;
-}
+//     return rendered;
+// }
 
 Camera &Scene::getCamera()
 {

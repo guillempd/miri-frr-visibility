@@ -114,6 +114,7 @@ void Camera::updateViewMatrix()
     updateFrustum();
 }
 
+// Computes the planes of the frustum in world space coordinates
 void Camera::updateFrustum()
 {
     float xOffset = ar * near * glm::tan(fov/2);
