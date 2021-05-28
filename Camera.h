@@ -12,30 +12,25 @@ struct Frustum
 
 // Camera contains the properies of the camera the scene is using
 // It is responsible for computing the associated GL matrices
-
-class Camera
+class ICamera
 {
 
 public:
-    Camera();
-    ~Camera();
-    void init();
-    void update(float deltaTime);
+    ICamera();
+    virtual ~ICamera() = default; // default or delete?
+    virtual void init();
+    virtual void update(float deltaTime) = 0;
+    virtual void rotateCamera(float xRotation, float yRotation);
     void resizeCameraViewport(int width, int height);
-    void rotateCamera(float xRotation, float yRotation);
     void zoomCamera(float distDelta);
-    const glm::mat4 &getProjectionMatrix() const;
-    const glm::mat4 &getViewMatrix() const;
-    const Frustum &getFrustum() const;
     const glm::vec3 &getPosition() const {return position;}
-private:
-    void moveForward(float input, float deltaTime);
-    void moveRight(float input, float deltaTime);
-    void moveUp(float input, float deltaTime);
+    const glm::mat4 &getViewMatrix() const {return view;}
+    const glm::mat4 &getProjectionMatrix() const {return projection;}
+    const Frustum &getFrustum() const {return frustum;}
+protected:
     void updateViewMatrix();
-    void updateLookDirection();
     void updateFrustum();
-private:
+protected:
     // OpenGL matrices
     glm::mat4 view;
     glm::mat4 projection;
@@ -46,8 +41,6 @@ private:
     glm::vec3 right;
     glm::vec3 up;
     glm::vec3 lookDirection;
-    float theta;
-    float phi;
 
     // Camera movement
     float speed;

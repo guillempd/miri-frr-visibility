@@ -7,3 +7,4 @@
 28/05/2021: Queries can be reused effectively
 28/05/2021: Implement path recording and path replay
 28/05/2021: Implement extraction of fps data along a path
+28/05/2021: Where to put glFinish()?

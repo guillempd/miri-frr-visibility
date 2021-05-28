@@ -1,19 +1,19 @@
-#include <iostream>
+#include "Scene.h"
+#include "FlywayCamera.h"
+#include "PLYReader.h"
+
+#include "imgui.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
-#include "imgui.h"
-
-#include "Scene.h"
-#include "PLYReader.h"
-
 #include <algorithm>
+#include <iostream>
 #include <utility>
 
 Scene::Scene()
-    : queryPool(16*16)
+    // : queryPool(16*16)
 {
     mesh = NULL;
 }
@@ -40,7 +40,8 @@ void Scene::init()
     mesh->sendToOpenGL(basicProgram);
     currentTime = 0.0f;
 
-    camera.init();
+    camera = new FlywayCamera;
+    camera->init();
 
     cube.buildCube();
     cube.sendToOpenGL(basicProgram);
@@ -55,12 +56,12 @@ void Scene::init()
 
     bPolygonFill = true;
 
-    entities = std::vector<std::vector<Entity>>(n, std::vector<Entity>(n));
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            entities[i][j].wasVisible = true;
-        }
-    }
+    // entities = std::vector<std::vector<Entity>>(n, std::vector<Entity>(n));
+    // for (int i = 0; i < n; ++i) {
+    //     for (int j = 0; j < n; ++j) {
+    //         entities[i][j].wasVisible = true;
+    //     }
+    // }
 }
 
 bool Scene::loadMesh(const char *filename)
@@ -82,7 +83,7 @@ bool Scene::loadMesh(const char *filename)
 void Scene::update(int deltaTime)
 {
     currentTime += deltaTime;
-    camera.update(deltaTime);
+    camera->update(deltaTime);
 }
 
 int Scene::render()
@@ -94,8 +95,8 @@ int Scene::render()
     }
     ImGui::End();
 
-    const glm::mat4 &view = camera.getViewMatrix();
-    const glm::mat4 &projection = camera.getProjectionMatrix();
+    const glm::mat4 &view = camera->getViewMatrix();
+    const glm::mat4 &projection = camera->getProjectionMatrix();
     basicProgram.use();
     basicProgram.setUniformMatrix4f("view", view);
     basicProgram.setUniformMatrix4f("projection", projection);
@@ -203,7 +204,7 @@ glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)
 void Scene::render(const glm::ivec2 &gridPosition)
 {
     const glm::mat4 model = glm::translate(glm::mat4(1.0f), worldPosition(gridPosition));
-    const glm::mat4 &view = camera.getViewMatrix();
+    const glm::mat4 &view = camera->getViewMatrix();
     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
 
     basicProgram.setUniformMatrix4f("model", model);
@@ -220,7 +221,7 @@ void Scene::renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe)
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, worldPosition(gridPosition));
     model = glm::scale(model, aabb.max - aabb.min);
-    const glm::mat4 &view = camera.getViewMatrix();
+    const glm::mat4 &view = camera->getViewMatrix();
     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
 
     basicProgram.setUniformMatrix4f("model", model);
@@ -233,7 +234,7 @@ void Scene::renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe)
 
 void Scene::renderFloor()
 {
-    const glm::mat4 &view = camera.getViewMatrix();
+    const glm::mat4 &view = camera->getViewMatrix();
     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * floorModel));
     basicProgram.setUniformMatrix4f("model", floorModel);
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
@@ -247,7 +248,7 @@ void Scene::renderFloor()
 bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
 {
     glm::mat4 model = glm::translate(glm::mat4(1.0f), worldPosition(gridPosition));
-    const Frustum &frustum = camera.getFrustum();
+    const Frustum &frustum = camera->getFrustum();
     glm::vec4 aabbMin = model * glm::vec4(mesh->aabb.min, 1.0f);
     glm::vec4 aabbIncrement = model * glm::vec4(mesh->aabb.max - mesh->aabb.min, 0.0f);
 
@@ -338,9 +339,9 @@ bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
 //     return rendered;
 // }
 
-Camera &Scene::getCamera()
+ICamera &Scene::getCamera()
 {
-    return camera;
+    return *camera;
 }
 
 void Scene::switchPolygonMode()

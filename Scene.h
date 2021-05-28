@@ -32,7 +32,7 @@ public:
     void update(int deltaTime);
     int render();
 
-    Camera &getCamera();
+    ICamera &getCamera();
 
     void switchPolygonMode();
 
@@ -55,7 +55,7 @@ private:
     static glm::vec3 worldPosition(const glm::ivec2 &gridPosition);
 
 private:
-    Camera camera;
+    ICamera *camera;
     TriangleMesh *mesh;
     TriangleMesh cube;
     TriangleMesh floor;
@@ -72,9 +72,9 @@ private:
     int n;
 
     // Occlusion culling data
-    std::queue<Query> previousFrameQueries;
-    std::vector<std::vector<Entity>> entities;
-    QueryPool queryPool;
+    // std::queue<Query> previousFrameQueries;
+    // std::vector<std::vector<Entity>> entities;
+    // QueryPool queryPool;
 };
 
 #endif // _SCENE_INCLUDE

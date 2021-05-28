@@ -7,25 +7,18 @@
 
 #include <iostream>
 
-Camera::Camera()
+ICamera::ICamera()
 {
 
 }
 
-Camera::~Camera()
-{
-
-}
-
-void Camera::init()
+void ICamera::init()
 {
     position = glm::vec3(0.0f, 0.0f, 3.0f);
     forward = glm::vec3(0.0f, 0.0f, -1.0f);
     right = glm::vec3(1.0f, 0.0f, 0.0f);
     up = glm::vec3(0.0f, 1.0f, 0.0f);
     lookDirection = glm::vec3(0.0f, 0.0f, -1.0f);
-    theta = glm::half_pi<float>();
-    phi = 0.0f;
 
     speed = 0.01f;
     sensitivity = 0.1f;
@@ -38,84 +31,31 @@ void Camera::init()
     updateViewMatrix();
 }
 
-void Camera::update(float deltaTime)
-{
-    if (Application::instance().getKey('w')) moveForward(1.0f, deltaTime);
-    if (Application::instance().getKey('s')) moveForward(-1.0f, deltaTime);
-    if (Application::instance().getKey('a')) moveRight(-1.0f, deltaTime);
-    if (Application::instance().getKey('d')) moveRight(1.0f, deltaTime);
-    if (Application::instance().getKey('q')) moveUp(-1.0f, deltaTime);
-    if (Application::instance().getKey('e')) moveUp(1.0f, deltaTime);
-    updateViewMatrix();
-}
-
-void Camera::resizeCameraViewport(int width, int height)
+void ICamera::resizeCameraViewport(int width, int height)
 {
     ar = static_cast<float>(width)/static_cast<float>(height);
     projection = glm::perspective(fov, ar, near, far);
     updateFrustum();
 }
 
-void Camera::rotateCamera(float xRotation, float yRotation)
+void ICamera::rotateCamera(float xRotation, float yRotation)
 {
-    theta += xRotation * sensitivity;
-    phi += yRotation * sensitivity;
-    phi = glm::clamp(phi, -(glm::half_pi<float>() - 0.1f), glm::half_pi<float>() - 0.1f);
-    updateLookDirection();
+    
 }
 
-// TODO: Implement this changing fov
-void Camera::zoomCamera(float distDelta)
+void ICamera::zoomCamera(float distDelta)
 {
 
 }
 
-const glm::mat4 &Camera::getProjectionMatrix() const
-{
-    return projection;
-}
-
-const glm::mat4 &Camera::getViewMatrix() const
-{
-    return view;
-}
-
-const Frustum &Camera::getFrustum() const
-{
-    return frustum;
-}
-
-void Camera::moveForward(float input, float deltaTime)
-{
-    position += input * forward * speed * deltaTime;
-}
-
-void Camera::moveUp(float input, float deltaTime)
-{
-    position += input * up * speed * deltaTime;
-}
-
-void Camera::moveRight(float input, float deltaTime)
-{
-    position += input * right * speed * deltaTime;
-}
-
-void Camera::updateLookDirection()
-{
-    lookDirection = glm::vec3(glm::cos(phi) * glm::cos(theta) ,glm::sin(phi), -glm::cos(phi) * glm::sin(theta));
-    forward = glm::normalize(glm::vec3(lookDirection.x, 0.0f, lookDirection.z));
-    right = glm::cross(forward, up);
-    updateViewMatrix();
-}
-
-void Camera::updateViewMatrix()
+void ICamera::updateViewMatrix()
 {
     view = glm::lookAt(position, position + lookDirection, up);
     updateFrustum();
 }
 
 // Computes the planes of the frustum in world space coordinates
-void Camera::updateFrustum()
+void ICamera::updateFrustum()
 {
     float xOffset = ar * near * glm::tan(fov/2);
     float yOffset = near * glm::tan(fov/2);
