@@ -23,11 +23,11 @@ void Application::init()
     mouseButtons[1] = false;
     lastMousePos = glm::ivec2(-1, -1);
 
-    frameCount = 0;
-    accumulatedDeltaTime = 0;
-    frameRate = 0.0f;
-
     mouseSensitivity = 0.05f;
+
+    time = 0;
+    frames = 0;
+    fps = 0.0f;
 }
 
 bool Application::loadMesh(const char *filename)
@@ -44,13 +44,12 @@ bool Application::update(int deltaTime)
 
 void Application::updateFrameRate(int deltaTime)
 {
-    ++frameCount;
-    accumulatedDeltaTime += deltaTime;
-    if (frameCount == FRAMES_TO_COUNT)
-    {
-        frameRate = (1000.0f * FRAMES_TO_COUNT)/accumulatedDeltaTime;
-        frameCount = 0;
-        accumulatedDeltaTime = 0;
+    frames += 1;
+    time += deltaTime;
+    if (time >= SAMPLE_TIME) {
+        fps = static_cast<float>(frames)/static_cast<float>(time) * 1000;
+        time = 0;
+        frames = 0;
     }
 }
 
@@ -60,11 +59,10 @@ void Application::render()
     int rendered = scene.render();
 
     if (ImGui::Begin("Performance Statistics")) {
-        ImGui::Text((std::to_string(frameRate) + std::string("fps")).c_str());
+        ImGui::Text((std::to_string(fps) + std::string("fps")).c_str());
         ImGui::Text(("Rendered copies: " + std::to_string(rendered)).c_str());
     }
     ImGui::End();
-
     
 }
 
