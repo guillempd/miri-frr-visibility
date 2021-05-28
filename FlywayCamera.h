@@ -8,12 +8,12 @@ public:
     FlywayCamera();
     ~FlywayCamera() override;
     void init() override;
-    void update(float deltaTime) override;
+    bool update(int deltaTime) override;
     void rotateCamera(float xRotation, float yRotation) override;
 private:
-    void moveForward(float input, float deltaTime);
-    void moveRight(float input, float deltaTime);
-    void moveUp(float input, float deltaTime);
+    void moveForward(float input, int deltaTime);
+    void moveRight(float input, int deltaTime);
+    void moveUp(float input, int deltaTime);
     void updateLookDirection();
 private:
     float theta;

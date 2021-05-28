@@ -92,8 +92,6 @@ void Application::specialKeyPressed(int key)
 void Application::specialKeyReleased(int key)
 {
     specialKeys[key] = false;
-    if (key == GLUT_KEY_F1)
-        scene.switchPolygonMode();
 }
 
 void Application::mouseMove(int x, int y)

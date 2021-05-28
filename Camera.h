@@ -19,7 +19,7 @@ public:
     ICamera();
     virtual ~ICamera() = default; // default or delete?
     virtual void init();
-    virtual void update(float deltaTime) = 0;
+    virtual bool update(int deltaTime) = 0;
     virtual void rotateCamera(float xRotation, float yRotation);
     void resizeCameraViewport(int width, int height);
     void zoomCamera(float distDelta);

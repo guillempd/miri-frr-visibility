@@ -34,25 +34,26 @@ public:
 
     ICamera &getCamera();
 
-    void switchPolygonMode();
-
 private:
-    void initShaders();
-
     // Scene rendering algorithms
     int renderBasic();
     int renderFrustumCulling();
     int renderOcclusionCulling();
     int renderUltimate();
+    bool insideFrustum(const glm::ivec2 &gridPosition) const;
 
     // Objects rendering
     void render(const glm::ivec2 &position);
     void renderBoundingBox(const glm::ivec2 &position, bool wireframe);
     void renderFloor();
-
-    bool insideFrustum(const glm::ivec2 &gridPosition) const;
-
     static glm::vec3 worldPosition(const glm::ivec2 &gridPosition);
+
+    // Camera and Paths management
+    void startCameraPath();
+    void endCameraPath();
+
+    // Others
+    void initShaders();
 
 private:
     ICamera *camera;
@@ -62,8 +63,6 @@ private:
     ShaderProgram basicProgram;
     float currentTime;
     glm::mat4 floorModel;
-
-    bool bPolygonFill;
 
     // Scene rendering data
     bool debug;

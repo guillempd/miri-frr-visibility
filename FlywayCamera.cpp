@@ -21,7 +21,7 @@ void FlywayCamera::init()
     phi = 0;
 }
 
-void FlywayCamera::update(float deltaTime)
+bool FlywayCamera::update(int deltaTime)
 {
     if (Application::instance().getKey('w')) moveForward(1.0f, deltaTime);
     if (Application::instance().getKey('s')) moveForward(-1.0f, deltaTime);
@@ -30,21 +30,22 @@ void FlywayCamera::update(float deltaTime)
     if (Application::instance().getKey('q')) moveUp(-1.0f, deltaTime);
     if (Application::instance().getKey('e')) moveUp(1.0f, deltaTime);
     updateViewMatrix();
+    return true;
 }
 
-void FlywayCamera::moveForward(float input, float deltaTime)
+void FlywayCamera::moveForward(float input, int deltaTime)
 {
-    position += input * forward * speed * deltaTime;
+    position += (input * speed * deltaTime) * forward;
 }
 
-void FlywayCamera::moveUp(float input, float deltaTime)
+void FlywayCamera::moveUp(float input, int deltaTime)
 {
-    position += input * up * speed * deltaTime;
+    position += (input * speed * deltaTime) * up;
 }
 
-void FlywayCamera::moveRight(float input, float deltaTime)
+void FlywayCamera::moveRight(float input, int deltaTime)
 {
-    position += input * right * speed * deltaTime;
+    position += (input * speed * deltaTime) * right;
 }
 
 void FlywayCamera::rotateCamera(float xRotation, float yRotation)

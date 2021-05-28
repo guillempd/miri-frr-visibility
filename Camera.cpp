@@ -26,7 +26,8 @@ void ICamera::init()
     near = 0.01f;
     far = 100.0f;
     fov = 60.f / 180.f * glm::pi<float>();
-    ar = 1.0f;
+    
+    resizeCameraViewport(16, 9);
 
     updateViewMatrix();
 }

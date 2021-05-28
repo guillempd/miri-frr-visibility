@@ -1,5 +1,6 @@
 #include "Scene.h"
 #include "FlywayCamera.h"
+#include "PathCamera.h"
 #include "PLYReader.h"
 
 #include "imgui.h"
@@ -54,8 +55,6 @@ void Scene::init()
     floorModel = glm::rotate(floorModel, glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
     floorModel = glm::scale(floorModel, glm::vec3(n));
 
-    bPolygonFill = true;
-
     // entities = std::vector<std::vector<Entity>>(n, std::vector<Entity>(n));
     // for (int i = 0; i < n; ++i) {
     //     for (int j = 0; j < n; ++j) {
@@ -83,7 +82,11 @@ bool Scene::loadMesh(const char *filename)
 void Scene::update(int deltaTime)
 {
     currentTime += deltaTime;
-    camera->update(deltaTime);
+    if (!camera->update(deltaTime))
+    {
+        // This signals that the path camera has finished its path
+        endCameraPath();
+    }
 }
 
 int Scene::render()
@@ -92,6 +95,9 @@ int Scene::render()
         ImGui::Checkbox("Enable/Disable Frustum Culling", &frustumCulling);
         ImGui::Checkbox("Enable/Disable Occlusion Culling", &occlusionCulling);
         ImGui::Checkbox("Enable/Disable Debug Mode", &debug);
+        if (ImGui::Button("Start Camera Path")) {
+            startCameraPath();
+        }
     }
     ImGui::End();
 
@@ -100,7 +106,7 @@ int Scene::render()
     basicProgram.use();
     basicProgram.setUniformMatrix4f("view", view);
     basicProgram.setUniformMatrix4f("projection", projection);
-    basicProgram.setUniform1i("bLighting", bPolygonFill ? 1 : 0);
+    basicProgram.setUniform1i("bLighting", 1);
     basicProgram.setUniform4f("color", 0.9f, 0.9f, 0.95f, 1.0f);
 
     renderFloor();
@@ -344,9 +350,18 @@ ICamera &Scene::getCamera()
     return *camera;
 }
 
-void Scene::switchPolygonMode()
+void Scene::startCameraPath()
 {
-    bPolygonFill = !bPolygonFill;
+    delete camera;
+    camera = new PathCamera("test.path");
+    camera->init();
+}
+
+void Scene::endCameraPath()
+{
+    delete camera;
+    camera = new FlywayCamera;
+    camera->init();
 }
 
 void Scene::initShaders()
