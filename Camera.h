@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 
 #include <array>
+#include <string>
+#include <vector>
 
 struct Frustum
 {
@@ -17,17 +19,19 @@ class ICamera
 
 public:
     ICamera();
-    virtual ~ICamera() = default; // default or delete?
+    virtual ~ICamera() = default; // FIXME: default or delete?
     virtual void init();
-    virtual bool update(int deltaTime) = 0;
+    virtual bool update(int deltaTime);
     virtual void rotateCamera(float xRotation, float yRotation);
     void resizeCameraViewport(int width, int height);
     void zoomCamera(float distDelta);
+    void recordPath(const std::string &path, int duration);
     const glm::vec3 &getPosition() const {return position;}
     const glm::mat4 &getViewMatrix() const {return view;}
     const glm::mat4 &getProjectionMatrix() const {return projection;}
     const Frustum &getFrustum() const {return frustum;}
 protected:
+    void savePath();
     void updateViewMatrix();
     void updateFrustum();
 protected:
@@ -51,6 +55,13 @@ protected:
     float far;
     float fov;
     float ar;
+
+    // Camera recording
+    std::string recordingPath;
+    std::vector<glm::vec3> recordingPositions;
+    std::vector<glm::vec3> recordingLookDirections;
+    int checkpointsLeft;
+    int timeSinceLastCheckpoint;
 
     // Others
     Frustum frustum;

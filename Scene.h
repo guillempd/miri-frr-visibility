@@ -49,8 +49,9 @@ private:
     static glm::vec3 worldPosition(const glm::ivec2 &gridPosition);
 
     // Camera and Paths management
-    void startCameraPath();
-    void endCameraPath();
+    void beginReplayCameraPath(const std::string &path);
+    void endReplayCameraPath();
+    void recordCameraPath(const std::string &path, int duration);
 
     // Others
     void initShaders();
@@ -69,6 +70,10 @@ private:
     bool frustumCulling;
     bool occlusionCulling;
     int n;
+
+    // Path recording data
+    char inputBuff[64];
+    char outputBuff[64];
 
     // Occlusion culling data
     // std::queue<Query> previousFrameQueries;

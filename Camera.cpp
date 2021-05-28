@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include <iostream>
+#include <fstream>
 
 ICamera::ICamera()
 {
@@ -32,6 +33,38 @@ void ICamera::init()
     updateViewMatrix();
 }
 
+bool ICamera::update(int deltaTime)
+{
+    timeSinceLastCheckpoint += deltaTime;
+    if (timeSinceLastCheckpoint >= 1000) {
+        timeSinceLastCheckpoint = 0;
+        recordingPositions.push_back(position);
+        recordingLookDirections.push_back(lookDirection);
+        if (!checkpointsLeft) savePath();
+        else --checkpointsLeft;
+    }
+    return true;
+}
+
+void ICamera::savePath()
+{
+    std::ofstream fout(recordingPath);
+    // if (!fout.is_open()) return;
+
+    int n = recordingPositions.size();
+    fout << n << '\n';
+
+    for (const auto &position : recordingPositions) {
+        fout << position.x << ' ' << position.y << ' ' << position.z << '\n';
+    }
+
+    fout << '\n';
+
+    for (const auto &lookDirection : recordingLookDirections) {
+        fout << lookDirection.x << ' ' << lookDirection.y << ' ' << lookDirection.z << '\n';
+    }
+}
+
 void ICamera::resizeCameraViewport(int width, int height)
 {
     ar = static_cast<float>(width)/static_cast<float>(height);
@@ -47,6 +80,17 @@ void ICamera::rotateCamera(float xRotation, float yRotation)
 void ICamera::zoomCamera(float distDelta)
 {
 
+}
+
+void ICamera::recordPath(const std::string &path, int duration)
+{
+    recordingPath = path;
+    checkpointsLeft = duration;
+    timeSinceLastCheckpoint = 1000;
+    recordingPositions.clear();
+    recordingPositions.reserve(checkpointsLeft + 1);
+    recordingLookDirections.clear();
+    recordingLookDirections.reserve(checkpointsLeft + 1);
 }
 
 void ICamera::updateViewMatrix()

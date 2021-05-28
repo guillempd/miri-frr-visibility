@@ -2,12 +2,12 @@
 -------------------------------------------
 19/05/2021: (EXTRA) Perform test with bounding sphere first, then perform test with bounding box (for frustum culling)
 19/05/2021: Implement Coherent Hierarchical Culling
-19/05/2021: Correctly implement frame counter
 -------------------------------------------
 28/05/2021: Queries can be reused effectively
-28/05/2021: Implement path recording
-28/05/2021: Implement extraction of fps data along a path
 28/05/2021: Where to put glFinish()? (LOW PRIORITY)
 -------------------------------------------
-28/05/2021: Reinitialize camera with previous aspect ratio and position and orientation (LOW PRIORITY)
+28/05/2021: Reinitialize camera with previous aspect ratio and position and orientation
 28/05/2021: Block interface/do not allow to press start path again (LOW PRIORITY)
+28/05/2021: Implement extraction of fps data along a path
+28/05/2021: Debug recording duration
+28/05/2021: Implement path recording mode with bounding boxes instead of bunnies for high fps and maybe lower speed of camera

@@ -85,7 +85,7 @@ void Scene::update(int deltaTime)
     if (!camera->update(deltaTime))
     {
         // This signals that the path camera has finished its path
-        endCameraPath();
+        endReplayCameraPath();
     }
 }
 
@@ -95,8 +95,17 @@ int Scene::render()
         ImGui::Checkbox("Enable/Disable Frustum Culling", &frustumCulling);
         ImGui::Checkbox("Enable/Disable Occlusion Culling", &occlusionCulling);
         ImGui::Checkbox("Enable/Disable Debug Mode", &debug);
-        if (ImGui::Button("Start Camera Path")) {
-            startCameraPath();
+
+        ImGui::InputText("input file", inputBuff, IM_ARRAYSIZE(inputBuff));
+        ImGui::SameLine();
+        if (ImGui::Button("Replay Camera Path")) {
+            beginReplayCameraPath(inputBuff);
+        }
+
+        ImGui::InputText("output file", outputBuff, IM_ARRAYSIZE(outputBuff));
+        ImGui::SameLine();
+        if (ImGui::Button("Record Camera Path")) {
+            recordCameraPath(outputBuff, 10);
         }
     }
     ImGui::End();
@@ -350,18 +359,23 @@ ICamera &Scene::getCamera()
     return *camera;
 }
 
-void Scene::startCameraPath()
+void Scene::beginReplayCameraPath(const std::string &path)
 {
     delete camera;
-    camera = new PathCamera("test.path");
+    camera = new PathCamera(path);
     camera->init();
 }
 
-void Scene::endCameraPath()
+void Scene::endReplayCameraPath()
 {
     delete camera;
     camera = new FlywayCamera;
     camera->init();
+}
+
+void Scene::recordCameraPath(const std::string &path, int duration)
+{
+    camera->recordPath(path, duration);
 }
 
 void Scene::initShaders()

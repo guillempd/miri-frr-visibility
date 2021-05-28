@@ -23,6 +23,8 @@ void FlywayCamera::init()
 
 bool FlywayCamera::update(int deltaTime)
 {
+    ICamera::update(deltaTime);
+    
     if (Application::instance().getKey('w')) moveForward(1.0f, deltaTime);
     if (Application::instance().getKey('s')) moveForward(-1.0f, deltaTime);
     if (Application::instance().getKey('a')) moveRight(-1.0f, deltaTime);

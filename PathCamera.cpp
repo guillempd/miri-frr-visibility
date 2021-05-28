@@ -36,6 +36,8 @@ void PathCamera::init()
 
 bool PathCamera::update(int deltaTime)
 {
+    ICamera::update(deltaTime);
+
     time += deltaTime;
     int index = static_cast<float>(time)/1000.0f;
     float t = (time - index*1000)/1000.0f;
