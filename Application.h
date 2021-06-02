@@ -37,6 +37,9 @@ public:
     bool getKey(int key) const;
     bool getSpecialKey(int key) const;
 
+    int getWidth() const;
+    int getHeight() const;
+
 private:
 
     void updateFrameRate(int deltaTime);
@@ -56,6 +59,8 @@ private:
     int time;
     int frames;
     float fps;
+
+    int width, height;
 };
 
 #endif // _APPLICATION_INCLUDE

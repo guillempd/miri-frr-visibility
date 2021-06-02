@@ -68,6 +68,8 @@ void Application::render()
 
 void Application::resize(int width, int height)
 {
+    this->width = width;
+    this->height = height;
     glViewport(0, 0, width, height);
     scene.getCamera().resizeCameraViewport(width, height);
 }
@@ -127,4 +129,14 @@ bool Application::getKey(int key) const
 bool Application::getSpecialKey(int key) const
 {
     return specialKeys[key];
+}
+
+int Application::getWidth() const
+{
+    return width;
+}
+
+int Application::getHeight() const
+{
+    return height;
 }

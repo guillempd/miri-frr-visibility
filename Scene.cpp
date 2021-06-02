@@ -29,7 +29,7 @@ Scene::~Scene()
 
 void Scene::init()
 {
-    n = 16;
+    n = 8;
     frustumCulling = false;
     occlusionCulling = false;
     debug = false;

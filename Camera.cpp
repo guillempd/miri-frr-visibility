@@ -28,7 +28,9 @@ void ICamera::init()
     far = 100.0f;
     fov = 60.f / 180.f * glm::pi<float>();
     
-    resizeCameraViewport(16, 9);
+    int width = Application::instance().getWidth();
+    int height = Application::instance().getHeight();
+    resizeCameraViewport(width, height);
 
     updateViewMatrix();
 }
@@ -67,6 +69,7 @@ void ICamera::savePath()
 
 void ICamera::resizeCameraViewport(int width, int height)
 {
+    if (width == 0 || height == 0) return;
     ar = static_cast<float>(width)/static_cast<float>(height);
     projection = glm::perspective(fov, ar, near, far);
     updateFrustum();
