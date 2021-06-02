@@ -62,7 +62,6 @@ private:
     TriangleMesh cube;
     TriangleMesh floor;
     ShaderProgram basicProgram;
-    float currentTime;
     glm::mat4 floorModel;
 
     // Scene rendering data

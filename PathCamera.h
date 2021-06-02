@@ -11,7 +11,6 @@ class PathCamera : public ICamera
 {
 public:
     PathCamera(const std::string &path);
-    ~PathCamera() override;
     void init() override;
     bool update(int deltaTime) override;
 private:

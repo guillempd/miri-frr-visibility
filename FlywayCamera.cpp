@@ -9,11 +9,6 @@ FlywayCamera::FlywayCamera()
 
 }
 
-FlywayCamera::~FlywayCamera()
-{
-
-}
-
 void FlywayCamera::init()
 {
     ICamera::init();

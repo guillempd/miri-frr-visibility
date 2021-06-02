@@ -18,8 +18,7 @@ class ICamera
 {
 
 public:
-    ICamera();
-    virtual ~ICamera() = default; // FIXME: default or delete?
+    virtual ~ICamera() = default;
     virtual void init();
     virtual bool update(int deltaTime);
     virtual void rotateCamera(float xRotation, float yRotation);
@@ -57,6 +56,7 @@ protected:
     float ar;
 
     // Camera recording
+    bool recording;
     std::string recordingPath;
     std::vector<glm::vec3> recordingPositions;
     std::vector<glm::vec3> recordingLookDirections;

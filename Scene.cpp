@@ -25,6 +25,7 @@ Scene::~Scene()
         delete mesh;
     cube.free();
     floor.free();
+    // delete camera;
 }
 
 void Scene::init()
@@ -40,7 +41,6 @@ void Scene::init()
     mesh = new TriangleMesh();
     mesh->buildCube();
     mesh->sendToOpenGL(basicProgram);
-    currentTime = 0.0f;
 
     camera = new FlywayCamera;
     camera->init();
@@ -82,7 +82,6 @@ bool Scene::loadMesh(const char *filename)
 
 void Scene::update(int deltaTime)
 {
-    currentTime += deltaTime;
     if (!camera->update(deltaTime))
     {
         // This signals that the path camera has finished its path
@@ -107,7 +106,7 @@ int Scene::render()
         ImGui::InputText("output file", outputBuff, IM_ARRAYSIZE(outputBuff));
         ImGui::SameLine();
         if (ImGui::Button("Record Camera Path")) {
-            recordCameraPath(outputBuff, 10);
+            recordCameraPath(outputBuff, 10); // TODO: Fix this duration here
         }
     }
     ImGui::End();

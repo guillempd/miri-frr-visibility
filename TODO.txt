@@ -12,3 +12,4 @@
 28/05/2021: Debug recording duration
 -------------------------------------------
 02/06/2021: Reduce camera speed and mouse sensitivity
+02/06/2021: Add skybox to better orient in the space (MAYBE)

@@ -58,11 +58,12 @@ void Application::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     int rendered = scene.render();
 
-    if (ImGui::Begin("Performance Statistics")) {
-        ImGui::Text((std::to_string(fps) + std::string("fps")).c_str());
-        ImGui::Text(("Rendered copies: " + std::to_string(rendered)).c_str());
-    }
-    ImGui::End();
+    // FIXME: Do not use strings (?)
+    // if (ImGui::Begin("Performance Statistics")) {
+    //     ImGui::Text("%g fps", fps);
+    //     ImGui::Text("Rendered copies: %i", rendered);
+    // }
+    // ImGui::End();
     
 }
 

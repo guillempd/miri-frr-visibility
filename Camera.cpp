@@ -8,11 +8,6 @@
 #include <iostream>
 #include <fstream>
 
-ICamera::ICamera()
-{
-
-}
-
 void ICamera::init()
 {
     position = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -37,12 +32,17 @@ void ICamera::init()
 
 bool ICamera::update(int deltaTime)
 {
+    if (!recording) return true;
+
     timeSinceLastCheckpoint += deltaTime;
     if (timeSinceLastCheckpoint >= 1000) {
         timeSinceLastCheckpoint = 0;
         recordingPositions.push_back(position);
         recordingLookDirections.push_back(lookDirection);
-        if (!checkpointsLeft) savePath();
+        if (!checkpointsLeft) {
+            savePath();
+            recording = false;
+        }
         else --checkpointsLeft;
     }
     return true;
@@ -87,6 +87,7 @@ void ICamera::zoomCamera(float distDelta)
 
 void ICamera::recordPath(const std::string &path, int duration)
 {
+    recording = true;
     recordingPath = path;
     checkpointsLeft = duration;
     timeSinceLastCheckpoint = 1000;

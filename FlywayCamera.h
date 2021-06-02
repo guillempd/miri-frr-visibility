@@ -6,7 +6,6 @@ class FlywayCamera : public ICamera
 {
 public:
     FlywayCamera();
-    ~FlywayCamera() override;
     void init() override;
     bool update(int deltaTime) override;
     void rotateCamera(float xRotation, float yRotation) override;

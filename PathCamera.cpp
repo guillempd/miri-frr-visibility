@@ -24,11 +24,6 @@ PathCamera::PathCamera(const std::string &path)
     
 }
 
-PathCamera::~PathCamera()
-{
-
-}
-
 void PathCamera::init()
 {
 
