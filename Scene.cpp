@@ -16,15 +16,11 @@
 Scene::Scene()
     // : queryPool(16*16)
 {
-    mesh = NULL;
+    camera = nullptr;
 }
 
 Scene::~Scene()
 {
-    if (mesh != NULL)
-        delete mesh;
-    cube.free();
-    floor.free();
     // delete camera;
 }
 
@@ -37,13 +33,11 @@ void Scene::init()
     pathMode = false;
 
     initShaders();
-    
-    mesh = new TriangleMesh();
-    mesh->buildCube();
-    mesh->sendToOpenGL(basicProgram);
 
     camera = new FlywayCamera;
     camera->init();
+
+    loadMesh("../models/bunny.ply");
 
     cube.buildCube();
     cube.sendToOpenGL(basicProgram);
@@ -66,15 +60,12 @@ void Scene::init()
 
 bool Scene::loadMesh(const char *filename)
 {
-    PLYReader reader;
-
-    mesh->free();
-    bool bSuccess = reader.readMesh(filename, *mesh);
+    bool bSuccess = PLYReader::readMesh(filename, mesh);
     if (bSuccess) {
-        mesh->sendToOpenGL(basicProgram);
+        mesh.sendToOpenGL(basicProgram);
         std::cout << "Mesh bounding box" << std::endl;
-        std::cout << "min = (" << mesh->aabb.min.x << ", " << mesh->aabb.min.y << ", " << mesh->aabb.min.z << ")" << std::endl;
-        std::cout << "max = (" << mesh->aabb.max.x << ", " << mesh->aabb.max.y << ", " << mesh->aabb.max.z << ")" << std::endl;
+        std::cout << "min = (" << mesh.aabb.min.x << ", " << mesh.aabb.min.y << ", " << mesh.aabb.min.z << ")" << std::endl;
+        std::cout << "max = (" << mesh.aabb.max.x << ", " << mesh.aabb.max.y << ", " << mesh.aabb.max.z << ")" << std::endl;
     }
     else std::cout << "Couldn't load mesh " << filename << std::endl;
     return bSuccess;
@@ -229,7 +220,7 @@ void Scene::render(const glm::ivec2 &gridPosition)
     
     if (pathMode) renderBoundingBox(gridPosition, false);
     else {
-        mesh->render();
+        mesh.render();
         if (debugMode) renderBoundingBox(gridPosition, true);
     } 
 }
@@ -237,7 +228,7 @@ void Scene::render(const glm::ivec2 &gridPosition)
 // TODO: Can make this more efficient by reducing uniform passing since they are already passed in some cases
 void Scene::renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe)
 {
-    const AABB &aabb = mesh->aabb;
+    const AABB &aabb = mesh.aabb;
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, worldPosition(gridPosition));
     model = glm::scale(model, aabb.max - aabb.min);
@@ -269,8 +260,8 @@ bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
 {
     glm::mat4 model = glm::translate(glm::mat4(1.0f), worldPosition(gridPosition));
     const Frustum &frustum = camera->getFrustum();
-    glm::vec4 aabbMin = model * glm::vec4(mesh->aabb.min, 1.0f);
-    glm::vec4 aabbIncrement = model * glm::vec4(mesh->aabb.max - mesh->aabb.min, 0.0f);
+    glm::vec4 aabbMin = model * glm::vec4(mesh.aabb.min, 1.0f);
+    glm::vec4 aabbIncrement = model * glm::vec4(mesh.aabb.max - mesh.aabb.min, 0.0f);
 
     for (const glm::vec4 &frustumPlane : frustum.planes) {
         bool allOutside = true;
@@ -366,14 +357,14 @@ ICamera &Scene::getCamera()
 
 void Scene::beginReplayCameraPath(const std::string &path)
 {
-    delete camera;
+    // delete camera;
     camera = new PathCamera(path);
     camera->init();
 }
 
 void Scene::endReplayCameraPath()
 {
-    delete camera;
+    // delete camera;
     camera = new FlywayCamera;
     camera->init();
 }

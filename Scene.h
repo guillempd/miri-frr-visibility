@@ -58,7 +58,7 @@ private:
 
 private:
     ICamera *camera;
-    TriangleMesh *mesh;
+    TriangleMesh mesh;
     TriangleMesh cube;
     TriangleMesh floor;
     ShaderProgram basicProgram;

@@ -8,6 +8,12 @@ TriangleMesh::TriangleMesh()
     aabb.max = glm::vec3(-std::numeric_limits<float>::max());
 }
 
+TriangleMesh::~TriangleMesh()
+{
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
+}
+
 void TriangleMesh::addVertex(const glm::vec3 &position)
 {
     vertices.push_back(position);
@@ -101,15 +107,4 @@ void TriangleMesh::render() const
     glEnableVertexAttribArray(posLocation);
     glEnableVertexAttribArray(normalLocation);
     glDrawArrays(GL_TRIANGLES, 0, 3 * 2 * 3 * triangles.size() / 3);
-}
-
-void TriangleMesh::free()
-{
-    glDeleteBuffers(1, &vbo);
-    glDeleteVertexArrays(1, &vao);
-
-    aabb.min = glm::vec3(std::numeric_limits<float>::max());
-    aabb.max = glm::vec3(std::numeric_limits<float>::min());
-    vertices.clear();
-    triangles.clear();
 }

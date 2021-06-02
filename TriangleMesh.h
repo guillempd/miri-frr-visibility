@@ -17,6 +17,7 @@ class TriangleMesh
 
 public:
     TriangleMesh();
+    ~TriangleMesh();
 
     void addVertex(const glm::vec3 &position);
     void addTriangle(int v0, int v1, int v2);
@@ -26,7 +27,6 @@ public:
 
     void sendToOpenGL(ShaderProgram &program);
     void render() const;
-    void free();
     AABB aabb;
 
 private:
