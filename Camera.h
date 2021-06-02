@@ -27,7 +27,7 @@ public:
 
     void beginRecording(const std::string &filePath, int duration);
     void endRecording();
-    void beginReplay(const std::string &filePath);
+    int beginReplay(const std::string &filePath);
     void endReplay();
 
     const glm::vec3 &getPosition() const {return position;}

@@ -80,18 +80,6 @@ int Scene::render()
         ImGui::Checkbox("Enable/Disable Occlusion Culling", &occlusionCulling);
         ImGui::Checkbox("Enable/Disable Debug Mode", &debugMode);
         ImGui::Checkbox("Enable/Disable Path Recording Mode", &pathMode);
-
-        ImGui::InputText("input file", inputBuff, IM_ARRAYSIZE(inputBuff));
-        ImGui::SameLine();
-        if (ImGui::Button("Replay Camera Path")) {
-            camera.beginReplay(inputBuff);
-        }
-
-        ImGui::InputText("output file", outputBuff, IM_ARRAYSIZE(outputBuff));
-        ImGui::SameLine();
-        if (ImGui::Button("Record Camera Path")) {
-            camera.beginRecording(outputBuff, 10); // TODO: Fix duration here
-        }
     }
     ImGui::End();
 

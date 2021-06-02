@@ -69,10 +69,6 @@ private:
     bool occlusionCulling;
     int n;
 
-    // Path recording data
-    char inputBuff[64];
-    char outputBuff[64];
-
     // Occlusion culling data
     // std::queue<Query> previousFrameQueries;
     // std::vector<std::vector<Entity>> entities;

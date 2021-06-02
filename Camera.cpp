@@ -123,26 +123,28 @@ void Camera::endRecording()
     recordLookDirections.clear();
 }
 
-void Camera::beginReplay(const std::string &filePath)
+int Camera::beginReplay(const std::string &filePath)
 {
     replayTime = 0;
 
     std::ifstream fin(filePath);
-    if (!fin.is_open()) return;
+    if (!fin.is_open()) return 0;
 
     fin >> replayCheckpoints;
 
-    replayPositions.resize(replayCheckpoints + 1);
-    for (int i = 0; i <= replayCheckpoints; ++i) {
+    replayPositions.resize(replayCheckpoints);
+    for (int i = 0; i < replayCheckpoints; ++i) {
         fin >> replayPositions[i].x >> replayPositions[i].y >> replayPositions[i].z;
     }
 
-    replayLookDirections.resize(replayCheckpoints + 1);
-    for (int i = 0; i <= replayCheckpoints; ++i) {
+    replayLookDirections.resize(replayCheckpoints);
+    for (int i = 0; i < replayCheckpoints; ++i) {
         fin >> replayLookDirections[i].x >> replayLookDirections[i].y >> replayLookDirections[i].z;
     }
 
     replayMode = true;
+
+    return replayCheckpoints - 1;
 }
 
 void Camera::endReplay()

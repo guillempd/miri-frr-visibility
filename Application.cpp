@@ -1,10 +1,11 @@
-#include <GL/glew.h>
-#include <GL/glut.h>
+#include "Application.h"
 
-#include <string>
 #include "imgui.h"
 
-#include "Application.h"
+#include <GL/glut.h>
+#include <GL/glew.h>
+
+#include <fstream>
 
 void Application::init()
 {
@@ -42,6 +43,7 @@ bool Application::update(int deltaTime)
     return bPlay;
 }
 
+
 void Application::updateFrameRate(int deltaTime)
 {
     frames += 1;
@@ -51,6 +53,44 @@ void Application::updateFrameRate(int deltaTime)
         time = 0;
         frames = 0;
     }
+
+    if (recordMode) {
+        recordTimeSinceLastCheckpoint += deltaTime;
+        if (recordTimeSinceLastCheckpoint >= 1000) {
+            recordTimeSinceLastCheckpoint = 0;
+            // recordTime.push_back(recordTimeSinceLastCheckpoint);
+            recordFps.push_back(fps);
+            if (!recordCheckpoints) endRecordFps();
+            else --recordCheckpoints;
+        }
+    }
+}
+
+void Application::beginRecordFps(const std::string &filePath, int duration)
+{
+    recordMode = true;
+    recordFilePath = filePath;
+    recordCheckpoints = duration;
+    recordTimeSinceLastCheckpoint = 1000;
+    recordTime.reserve(recordCheckpoints + 1);
+    recordFps.reserve(recordCheckpoints + 1);
+}
+
+void Application::endRecordFps()
+{
+    recordMode = false;
+    
+    std::ofstream fout(recordFilePath);
+    if (fout.is_open()) {
+        int n = recordFps.size();
+        fout << n << '\n';
+
+        for (int i = 0; i < n; ++i) {
+            fout /*<< recordTime[i] << ','*/ << recordFps[i] << '\n';
+        }
+    }
+    recordTime.clear();
+    recordFps.clear();
 }
 
 void Application::render()
@@ -63,8 +103,24 @@ void Application::render()
         ImGui::Text("Rendered copies: %i", rendered);
     }
     ImGui::End();
-    
+
+    if (ImGui::Begin("Actions")) {
+        ImGui::InputText("input file", inputBuff, IM_ARRAYSIZE(inputBuff));
+            ImGui::SameLine();
+            if (ImGui::Button("Replay Camera Path")) {
+                int duration = scene.getCamera().beginReplay(inputBuff);
+                beginRecordFps("fps.dat", duration); // FIXME
+            }
+
+            ImGui::InputText("output file", outputBuff, IM_ARRAYSIZE(outputBuff));
+            ImGui::SameLine();
+            if (ImGui::Button("Record Camera Path")) {
+                scene.getCamera().beginRecording(outputBuff, 10); // TODO: Fix duration here
+        }
+    }
+    ImGui::End();
 }
+
 
 void Application::resize(int width, int height)
 {

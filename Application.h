@@ -3,6 +3,9 @@
 
 #include "Scene.h"
 
+#include <string>
+#include <vector>
+
 // Application is a singleton (a class with a single instance) that represents our whole app
 
 class Application
@@ -40,13 +43,15 @@ public:
     int getWidth() const;
     int getHeight() const;
 
+    void beginRecordFps(const std::string &filePath, int duration);
+    void endRecordFps();
+
 private:
 
     void updateFrameRate(int deltaTime);
     bool bPlay;						  // Continue?
     Scene scene;					  // Scene to render
-    bool keys[256], specialKeys[256]; // Store key states so that
-                                      // we can have access at any time
+    bool keys[256], specialKeys[256]; // Store key states so that we can have access at any time
 
     glm::ivec2 lastMousePos; // Last Mouse position
     bool mouseButtons[5];	 // State of mouse buttons
@@ -55,12 +60,24 @@ private:
 
     float mouseSensitivity;
 
+    int width, height;
+
+    char inputBuff[64];
+    char outputBuff[64];
+
+    // FPS measuring data
     const int SAMPLE_TIME = 1000;
     int time;
     int frames;
     float fps;
 
-    int width, height;
+    // FPS recording data
+    bool recordMode;
+    std::string recordFilePath;
+    std::vector<float> recordTime;
+    std::vector<float> recordFps;
+    int recordCheckpoints;
+    int recordTimeSinceLastCheckpoint;
 };
 
 #endif // _APPLICATION_INCLUDE
