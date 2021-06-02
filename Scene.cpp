@@ -32,7 +32,8 @@ void Scene::init()
     n = 8;
     frustumCulling = false;
     occlusionCulling = false;
-    debug = false;
+    debugMode = false;
+    pathMode = false;
 
     initShaders();
     
@@ -94,7 +95,8 @@ int Scene::render()
     if (ImGui::Begin("Settings")) {
         ImGui::Checkbox("Enable/Disable Frustum Culling", &frustumCulling);
         ImGui::Checkbox("Enable/Disable Occlusion Culling", &occlusionCulling);
-        ImGui::Checkbox("Enable/Disable Debug Mode", &debug);
+        ImGui::Checkbox("Enable/Disable Debug Mode", &debugMode);
+        ImGui::Checkbox("Enable/Disable Path Recording Mode", &pathMode);
 
         ImGui::InputText("input file", inputBuff, IM_ARRAYSIZE(inputBuff));
         ImGui::SameLine();
@@ -119,7 +121,8 @@ int Scene::render()
     basicProgram.setUniform4f("color", 0.9f, 0.9f, 0.95f, 1.0f);
 
     renderFloor();
-    if (frustumCulling && occlusionCulling) return renderUltimate(); 
+    if (pathMode) return renderBasic();
+    else if (frustumCulling && occlusionCulling) return renderUltimate(); 
     else if (occlusionCulling) return renderOcclusionCulling();
     else if (frustumCulling) return renderFrustumCulling();
     else return renderBasic();
@@ -225,8 +228,11 @@ void Scene::render(const glm::ivec2 &gridPosition)
     basicProgram.setUniformMatrix4f("model", model);
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
     
-    mesh->render();
-    if (debug) renderBoundingBox(gridPosition, true);
+    if (pathMode) renderBoundingBox(gridPosition, false);
+    else {
+        mesh->render();
+        if (debugMode) renderBoundingBox(gridPosition, true);
+    } 
 }
 
 // TODO: Can make this more efficient by reducing uniform passing since they are already passed in some cases

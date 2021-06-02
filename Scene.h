@@ -66,7 +66,8 @@ private:
     glm::mat4 floorModel;
 
     // Scene rendering data
-    bool debug;
+    bool debugMode;
+    bool pathMode;
     bool frustumCulling;
     bool occlusionCulling;
     int n;

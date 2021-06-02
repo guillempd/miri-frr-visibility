@@ -10,4 +10,5 @@
 28/05/2021: Block interface/do not allow to press start path again (LOW PRIORITY)
 28/05/2021: Implement extraction of fps data along a path
 28/05/2021: Debug recording duration
-28/05/2021: Implement path recording mode with bounding boxes instead of bunnies for high fps and maybe lower speed of camera
+-------------------------------------------
+02/06/2021: Reduce camera speed and mouse sensitivity
