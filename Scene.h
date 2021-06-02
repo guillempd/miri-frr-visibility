@@ -11,15 +11,13 @@
 
 #include <queue>
 
-// Scene contains all the entities of our game.
-// It is responsible for updating and render them.
-
-
 struct Entity
 {
     bool wasVisible;
 };
 
+// Scene contains all the entities of our game.
+// It is responsible for updating and render them.
 class Scene
 {
 
@@ -32,7 +30,7 @@ public:
     void update(int deltaTime);
     int render();
 
-    ICamera &getCamera();
+    Camera &getCamera() {return camera;}
 
 private:
     // Scene rendering algorithms
@@ -57,7 +55,7 @@ private:
     void initShaders();
 
 private:
-    ICamera *camera;
+    Camera camera;
     TriangleMesh mesh;
     TriangleMesh cube;
     TriangleMesh floor;

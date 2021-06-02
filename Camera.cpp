@@ -8,7 +8,12 @@
 #include <iostream>
 #include <fstream>
 
-void ICamera::init()
+Camera::Camera()
+{
+
+}
+
+void Camera::init()
 {
     position = glm::vec3(0.0f, 0.0f, 3.0f);
     forward = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -30,44 +35,124 @@ void ICamera::init()
     updateViewMatrix();
 }
 
-bool ICamera::update(int deltaTime)
+void Camera::update(int deltaTime)
 {
-    if (!recording) return true;
+    if (replayMode) {
+        replayTime += deltaTime;
+        int index = replayTime/1000;
+        float t = static_cast<float>(replayTime - index*1000)/1000.0f;
+        if (index < replayCheckpoints) {
+            glm::vec3 position_i = replayPositions[index];
+            glm::vec3 position_i_next = replayPositions[index+1];
+            position = (1-t)*position_i + t*position_i_next;
 
-    timeSinceLastCheckpoint += deltaTime;
-    if (timeSinceLastCheckpoint >= 1000) {
-        timeSinceLastCheckpoint = 0;
-        recordingPositions.push_back(position);
-        recordingLookDirections.push_back(lookDirection);
-        if (!checkpointsLeft) {
-            savePath();
-            recording = false;
+            glm::vec3 lookDirection_i = replayLookDirections[index];
+            glm::vec3 lookDirection_i_next = replayLookDirections[index+1];
+            lookDirection = (1-t)*lookDirection_i + t*lookDirection_i_next;
         }
-        else --checkpointsLeft;
+        else endReplay();
     }
-    return true;
+
+    else {
+        if (Application::instance().getKey('w')) moveForward(1.0f, deltaTime);
+        if (Application::instance().getKey('s')) moveForward(-1.0f, deltaTime);
+        if (Application::instance().getKey('a')) moveRight(-1.0f, deltaTime);
+        if (Application::instance().getKey('d')) moveRight(1.0f, deltaTime);
+        if (Application::instance().getKey('q')) moveUp(-1.0f, deltaTime);
+        if (Application::instance().getKey('e')) moveUp(1.0f, deltaTime);
+    }
+
+    updateViewMatrix();
+
+    if (!recordMode) return;
+
+    recordTimeSinceLastCheckpoint += deltaTime;
+    if (recordTimeSinceLastCheckpoint >= 1000) {
+        recordTimeSinceLastCheckpoint = 0;
+        recordPositions.push_back(position);
+        recordLookDirections.push_back(lookDirection);
+        if (!recordCheckpoints) endRecording();
+        else --recordCheckpoints;
+    }
 }
 
-void ICamera::savePath()
+void Camera::moveForward(float input, int deltaTime)
 {
-    std::ofstream fout(recordingPath);
-    // if (!fout.is_open()) return;
-
-    int n = recordingPositions.size();
-    fout << n << '\n';
-
-    for (const auto &position : recordingPositions) {
-        fout << position.x << ' ' << position.y << ' ' << position.z << '\n';
-    }
-
-    fout << '\n';
-
-    for (const auto &lookDirection : recordingLookDirections) {
-        fout << lookDirection.x << ' ' << lookDirection.y << ' ' << lookDirection.z << '\n';
-    }
+    position += (input * speed * deltaTime) * forward;
 }
 
-void ICamera::resizeCameraViewport(int width, int height)
+void Camera::moveUp(float input, int deltaTime)
+{
+    position += (input * speed * deltaTime) * up;
+}
+
+void Camera::moveRight(float input, int deltaTime)
+{
+    position += (input * speed * deltaTime) * right;
+}
+
+void Camera::beginRecording(const std::string &filePath, int duration)
+{
+    recordMode = true;
+    recordFilePath = filePath;
+    recordCheckpoints = duration;
+    recordTimeSinceLastCheckpoint = 1000;
+    recordPositions.reserve(recordCheckpoints + 1);
+    recordLookDirections.reserve(recordCheckpoints + 1);
+}
+
+void Camera::endRecording()
+{
+    std::ofstream fout(recordFilePath);
+    if (fout.is_open()) {
+        fout << recordPositions.size() << '\n';
+
+        for (const auto &position : recordPositions) {
+            fout << position.x << ' ' << position.y << ' ' << position.z << '\n';
+        }
+
+        fout << '\n';
+
+        for (const auto &lookDirection : recordLookDirections) {
+            fout << lookDirection.x << ' ' << lookDirection.y << ' ' << lookDirection.z << '\n';
+        }
+    }
+
+    recordMode = false;
+    recordPositions.clear();
+    recordLookDirections.clear();
+}
+
+void Camera::beginReplay(const std::string &filePath)
+{
+    replayTime = 0;
+
+    std::ifstream fin(filePath);
+    if (!fin.is_open()) return;
+
+    fin >> replayCheckpoints;
+
+    replayPositions.resize(replayCheckpoints + 1);
+    for (int i = 0; i <= replayCheckpoints; ++i) {
+        fin >> replayPositions[i].x >> replayPositions[i].y >> replayPositions[i].z;
+    }
+
+    replayLookDirections.resize(replayCheckpoints + 1);
+    for (int i = 0; i <= replayCheckpoints; ++i) {
+        fin >> replayLookDirections[i].x >> replayLookDirections[i].y >> replayLookDirections[i].z;
+    }
+
+    replayMode = true;
+}
+
+void Camera::endReplay()
+{
+    replayMode = false;
+    replayPositions.clear();
+    replayLookDirections.clear();
+}
+
+void Camera::resizeCameraViewport(int width, int height)
 {
     if (width == 0 || height == 0) return;
     ar = static_cast<float>(width)/static_cast<float>(height);
@@ -75,36 +160,32 @@ void ICamera::resizeCameraViewport(int width, int height)
     updateFrustum();
 }
 
-void ICamera::rotateCamera(float xRotation, float yRotation)
+void Camera::rotateCamera(float xRotation, float yRotation)
 {
-    
+    if (replayMode) return;
+
+    theta += xRotation * sensitivity;
+    phi += yRotation * sensitivity;
+    phi = glm::clamp(phi, -(glm::half_pi<float>() - 0.1f), glm::half_pi<float>() - 0.1f);
+    lookDirection = glm::vec3(glm::cos(phi) * glm::cos(theta) ,glm::sin(phi), -glm::cos(phi) * glm::sin(theta));
+    forward = glm::normalize(glm::vec3(lookDirection.x, 0.0f, lookDirection.z));
+    right = glm::cross(forward, up);
+    updateViewMatrix();
 }
 
-void ICamera::zoomCamera(float distDelta)
+void Camera::zoomCamera(float distDelta)
 {
 
 }
 
-void ICamera::recordPath(const std::string &path, int duration)
-{
-    recording = true;
-    recordingPath = path;
-    checkpointsLeft = duration;
-    timeSinceLastCheckpoint = 1000;
-    recordingPositions.clear();
-    recordingPositions.reserve(checkpointsLeft + 1);
-    recordingLookDirections.clear();
-    recordingLookDirections.reserve(checkpointsLeft + 1);
-}
-
-void ICamera::updateViewMatrix()
+void Camera::updateViewMatrix()
 {
     view = glm::lookAt(position, position + lookDirection, up);
     updateFrustum();
 }
 
 // Computes the planes of the frustum in world space coordinates
-void ICamera::updateFrustum()
+void Camera::updateFrustum()
 {
     float xOffset = ar * near * glm::tan(fov/2);
     float yOffset = near * glm::tan(fov/2);

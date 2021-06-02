@@ -1,6 +1,4 @@
 #include "Scene.h"
-#include "FlywayCamera.h"
-#include "PathCamera.h"
 #include "PLYReader.h"
 
 #include "imgui.h"
@@ -16,7 +14,7 @@
 Scene::Scene()
     // : queryPool(16*16)
 {
-    camera = nullptr;
+    // camera = nullptr;
 }
 
 Scene::~Scene()
@@ -34,8 +32,7 @@ void Scene::init()
 
     initShaders();
 
-    camera = new FlywayCamera;
-    camera->init();
+    camera.init();
 
     loadMesh("../models/bunny.ply");
 
@@ -73,11 +70,7 @@ bool Scene::loadMesh(const char *filename)
 
 void Scene::update(int deltaTime)
 {
-    if (!camera->update(deltaTime))
-    {
-        // This signals that the path camera has finished its path
-        endReplayCameraPath();
-    }
+    camera.update(deltaTime);
 }
 
 int Scene::render()
@@ -91,19 +84,19 @@ int Scene::render()
         ImGui::InputText("input file", inputBuff, IM_ARRAYSIZE(inputBuff));
         ImGui::SameLine();
         if (ImGui::Button("Replay Camera Path")) {
-            beginReplayCameraPath(inputBuff);
+            camera.beginReplay(inputBuff);
         }
 
         ImGui::InputText("output file", outputBuff, IM_ARRAYSIZE(outputBuff));
         ImGui::SameLine();
         if (ImGui::Button("Record Camera Path")) {
-            recordCameraPath(outputBuff, 10); // TODO: Fix this duration here
+            camera.beginRecording(outputBuff, 10); // TODO: Fix duration here
         }
     }
     ImGui::End();
 
-    const glm::mat4 &view = camera->getViewMatrix();
-    const glm::mat4 &projection = camera->getProjectionMatrix();
+    const glm::mat4 &view = camera.getViewMatrix();
+    const glm::mat4 &projection = camera.getProjectionMatrix();
     basicProgram.use();
     basicProgram.setUniformMatrix4f("view", view);
     basicProgram.setUniformMatrix4f("projection", projection);
@@ -212,7 +205,7 @@ glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)
 void Scene::render(const glm::ivec2 &gridPosition)
 {
     const glm::mat4 model = glm::translate(glm::mat4(1.0f), worldPosition(gridPosition));
-    const glm::mat4 &view = camera->getViewMatrix();
+    const glm::mat4 &view = camera.getViewMatrix();
     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
 
     basicProgram.setUniformMatrix4f("model", model);
@@ -232,7 +225,7 @@ void Scene::renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe)
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, worldPosition(gridPosition));
     model = glm::scale(model, aabb.max - aabb.min);
-    const glm::mat4 &view = camera->getViewMatrix();
+    const glm::mat4 &view = camera.getViewMatrix();
     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
 
     basicProgram.setUniformMatrix4f("model", model);
@@ -245,7 +238,7 @@ void Scene::renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe)
 
 void Scene::renderFloor()
 {
-    const glm::mat4 &view = camera->getViewMatrix();
+    const glm::mat4 &view = camera.getViewMatrix();
     const glm::mat3 normalMatrix = glm::mat3(glm::inverseTranspose(view * floorModel));
     basicProgram.setUniformMatrix4f("model", floorModel);
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
@@ -259,7 +252,7 @@ void Scene::renderFloor()
 bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
 {
     glm::mat4 model = glm::translate(glm::mat4(1.0f), worldPosition(gridPosition));
-    const Frustum &frustum = camera->getFrustum();
+    const Frustum &frustum = camera.getFrustum();
     glm::vec4 aabbMin = model * glm::vec4(mesh.aabb.min, 1.0f);
     glm::vec4 aabbIncrement = model * glm::vec4(mesh.aabb.max - mesh.aabb.min, 0.0f);
 
@@ -349,30 +342,6 @@ bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
 
 //     return rendered;
 // }
-
-ICamera &Scene::getCamera()
-{
-    return *camera;
-}
-
-void Scene::beginReplayCameraPath(const std::string &path)
-{
-    // delete camera;
-    camera = new PathCamera(path);
-    camera->init();
-}
-
-void Scene::endReplayCameraPath()
-{
-    // delete camera;
-    camera = new FlywayCamera;
-    camera->init();
-}
-
-void Scene::recordCameraPath(const std::string &path, int duration)
-{
-    camera->recordPath(path, duration);
-}
 
 void Scene::initShaders()
 {
