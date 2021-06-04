@@ -1,11 +1,11 @@
-#include <GL/glew.h>
-#include <GL/freeglut.h>
+#include "Application.h"
 
 #include "imgui.h"
 #include "imgui_impl_glut.h"
 #include "imgui_impl_opengl3.h"
 
-#include "Application.h"
+#include <GL/glew.h>
+#include <GL/freeglut.h>
 
 #include <iostream>
 
@@ -14,6 +14,8 @@
 
 #define GLUT_SCROLL_UP      0x0003
 #define GLUT_SCROLL_DOWN    0x0004
+
+#define TARGET_FRAME_TIME 1000.0f/250.0f
 
 static int prevTime;
 static bool capturingMouse;
@@ -151,11 +153,12 @@ static void idleCallback()
 {
     int currentTime = glutGet(GLUT_ELAPSED_TIME);
     int deltaTime = currentTime - prevTime;
-
-    // Every time we enter here is equivalent to a game loop execution
-    if (!Application::instance().update(deltaTime)) glutLeaveMainLoop();
-    prevTime = currentTime;
-    glutPostRedisplay();
+    if (deltaTime >= TARGET_FRAME_TIME) {
+        // Every time we enter here is equivalent to a game loop execution
+        if (!Application::instance().update(deltaTime)) glutLeaveMainLoop();
+        prevTime = currentTime;
+        glutPostRedisplay();
+    }
 }
 
 int main(int argc, char **argv)
