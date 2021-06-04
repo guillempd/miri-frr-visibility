@@ -185,9 +185,6 @@ int main(int argc, char **argv)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    // Setup Dear ImGui style
-    ImGui::StyleColorsLight();
-
     // Setup Platform/Renderer backends
     ImGui_ImplGLUT_Init();
     ImGui_ImplOpenGL3_Init();

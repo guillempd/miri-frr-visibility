@@ -11,4 +11,3 @@
 28/05/2021: Implement extraction of fps data along a path
 -------------------------------------------
 02/06/2021: Add skybox to better orient in the space (MAYBE)
-02/06/2021: Limit to 300fps

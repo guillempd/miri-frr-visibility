@@ -35,9 +35,10 @@ public:
 private:
     // Scene rendering algorithms
     int renderBasic();
-    int renderFrustumCulling();
-    int renderOcclusionCulling();
-    int renderUltimate();
+    int renderStopAndWait();
+    int renderCHC();
+
+    // Frustum culling implementation
     bool insideFrustum(const glm::ivec2 &gridPosition) const;
 
     // Objects rendering
@@ -45,11 +46,6 @@ private:
     void renderBoundingBox(const glm::ivec2 &position, bool wireframe);
     void renderFloor();
     static glm::vec3 worldPosition(const glm::ivec2 &gridPosition);
-
-    // Camera and Paths management
-    void beginReplayCameraPath(const std::string &path);
-    void endReplayCameraPath();
-    void recordCameraPath(const std::string &path, int duration);
 
     // Others
     void initShaders();
@@ -66,8 +62,15 @@ private:
     bool debugMode;
     bool pathMode;
     bool frustumCulling;
-    bool occlusionCulling;
+    int occlusionCulling;
     int n;
+
+    enum OcclusionQueriesAlgorithm
+    {
+        NONE,
+        STOP_AND_WAIT,
+        CHC
+    };
 
     // Occlusion culling data
     // std::queue<Query> previousFrameQueries;

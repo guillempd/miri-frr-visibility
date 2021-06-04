@@ -14,17 +14,17 @@
 Scene::Scene()
     // : queryPool(16*16)
 {
-    // camera = nullptr;
+
 }
 
 Scene::~Scene()
 {
-    // delete camera;
+
 }
 
 void Scene::init()
 {
-    n = 8;
+    n = 16;
     frustumCulling = false;
     occlusionCulling = false;
     debugMode = false;
@@ -77,9 +77,13 @@ int Scene::render()
 {
     if (ImGui::Begin("Settings")) {
         ImGui::Checkbox("Enable/Disable Frustum Culling", &frustumCulling);
-        ImGui::Checkbox("Enable/Disable Occlusion Culling", &occlusionCulling);
-        ImGui::Checkbox("Enable/Disable Debug Mode", &debugMode);
         ImGui::Checkbox("Enable/Disable Path Recording Mode", &pathMode);
+        ImGui::Checkbox("Enable/Disable Debug Mode", &debugMode);
+        ImGui::Separator();
+        ImGui::Text("Occlusion Culling Strategy");
+        ImGui::RadioButton("None", &occlusionCulling, NONE);
+        ImGui::RadioButton("Stop and Wait", &occlusionCulling, STOP_AND_WAIT);
+        ImGui::RadioButton("CHC", &occlusionCulling, CHC);
     }
     ImGui::End();
 
@@ -92,30 +96,26 @@ int Scene::render()
     basicProgram.setUniform4f("color", 0.9f, 0.9f, 0.95f, 1.0f);
 
     renderFloor();
-    if (pathMode) return renderBasic();
-    else if (frustumCulling && occlusionCulling) return renderUltimate(); 
-    else if (occlusionCulling) return renderOcclusionCulling();
-    else if (frustumCulling) return renderFrustumCulling();
-    else return renderBasic();
+    switch(occlusionCulling) {
+        case NONE:
+            return renderBasic();
+        case STOP_AND_WAIT:
+            return renderStopAndWait();
+        case CHC:
+            return renderCHC();
+        default:
+            std::cerr << "Unknown Occlusion Queries Algorithm" << std::endl;
+            return -1;
+    }
 }
 
 int Scene::renderBasic()
 {
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            render(glm::ivec2(i, j));
-        }
-    }
-    return n * n;
-}
-
-int Scene::renderFrustumCulling()
-{
     int rendered = 0;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             glm::ivec2 gridPosition(i, j);
-            if (insideFrustum(gridPosition)) {
+            if (!frustumCulling || insideFrustum(gridPosition)) {
                 render(gridPosition);
                 ++rendered;
             }
@@ -124,8 +124,7 @@ int Scene::renderFrustumCulling()
     return rendered;
 }
 
-// Stop and wait occlusion culling method
-int Scene::renderOcclusionCulling()
+int Scene::renderStopAndWait()
 {
     int rendered = 0;
     GLuint id;
@@ -133,6 +132,7 @@ int Scene::renderOcclusionCulling()
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             glm::ivec2 gridPosition(i, j);
+            if (frustumCulling && !insideFrustum(gridPosition)) continue;
 
             glBeginQuery(GL_ANY_SAMPLES_PASSED, id);
             glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -154,35 +154,10 @@ int Scene::renderOcclusionCulling()
     return rendered;
 }
 
-// TODO: Combine Frustum Culling + Occlusion Culling for ultimate performance
-int Scene::renderUltimate()
+// TODO: Implement
+int Scene::renderCHC()
 {
-    int rendered = 0;
-    GLuint id;
-    glGenQueries(1, &id);
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            glm::ivec2 gridPosition(i, j);
-            if (!insideFrustum(gridPosition)) continue;
-
-            glBeginQuery(GL_ANY_SAMPLES_PASSED, id);
-            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-            glDepthMask(GL_FALSE);
-            renderBoundingBox(gridPosition, false);
-            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-            glDepthMask(GL_TRUE);
-            glEndQuery(GL_ANY_SAMPLES_PASSED);
-
-            GLint visible;
-            glGetQueryObjectiv(id, GL_QUERY_RESULT, &visible);
-            if (visible == GL_TRUE) {
-                render(gridPosition);
-                ++rendered;
-            }
-        }
-    }
-    glDeleteQueries(1, &id);
-    return rendered;
+    return renderStopAndWait();
 }
 
 glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)
@@ -198,12 +173,8 @@ void Scene::render(const glm::ivec2 &gridPosition)
 
     basicProgram.setUniformMatrix4f("model", model);
     basicProgram.setUniformMatrix3f("normalMatrix", normalMatrix);
-    
-    if (pathMode) renderBoundingBox(gridPosition, false);
-    else {
-        mesh.render();
-        if (debugMode) renderBoundingBox(gridPosition, true);
-    } 
+    if (!pathMode) mesh.render();
+    if (debugMode || pathMode) renderBoundingBox(gridPosition, true);
 }
 
 // TODO: Can make this more efficient by reducing uniform passing since they are already passed in some cases
