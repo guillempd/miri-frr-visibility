@@ -48,7 +48,8 @@ void Camera::update(int deltaTime)
 
             glm::vec3 lookDirection_i = replayLookDirections[index];
             glm::vec3 lookDirection_i_next = replayLookDirections[index+1];
-            lookDirection = (1-t)*lookDirection_i + t*lookDirection_i_next;
+            lookDirection = glm::normalize((1-t)*lookDirection_i + t*lookDirection_i_next);
+            right = glm::normalize(glm::cross(lookDirection, up));
         }
         else endReplay();
     }
