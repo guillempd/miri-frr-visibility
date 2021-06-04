@@ -73,9 +73,9 @@ private:
     };
 
     // Occlusion culling data
+    QueryPool queryPool;
     // std::queue<Query> previousFrameQueries;
     // std::vector<std::vector<Entity>> entities;
-    // QueryPool queryPool;
 };
 
 #endif // _SCENE_INCLUDE

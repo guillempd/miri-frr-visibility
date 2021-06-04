@@ -1,12 +1,7 @@
-#ifndef _QUERY_POOL_INCLUDE
-#define _QUERY_POOL_INCLUDE
+#ifndef _INCLUDE_QUERY_POOL
+#define _INCLUDE_QUERY_POOL
 
 #include "Query.h"
-
-#include "glm/glm.hpp"
-
-#include "GL/glew.h"
-#include "GL/gl.h"
 
 #include <vector>
 
@@ -14,13 +9,13 @@ class QueryPool
 {
 public:
     QueryPool(int n);
+    QueryPool();
     ~QueryPool();
-    Query getQuery(const glm::ivec2 &gridCoordinates);
+    Query getQuery();
     void clear();
 private:
     std::vector<GLuint> ids;
     int i;
 };
 
-
-#endif // _QUERY_POOL_INCLUDE
+#endif // _INCLUDE_QUERY_POOL

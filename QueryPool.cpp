@@ -2,18 +2,24 @@
 
 QueryPool::QueryPool(int n)
     : ids(n)
+    , i(0)
 {
-    glGenQueries(n, ids.data());
+    glGenQueries(ids.size(), ids.data());
 }
+
+QueryPool::QueryPool()
+    : QueryPool(0)
+    {}
 
 QueryPool::~QueryPool()
 {
     glDeleteQueries(ids.size(), ids.data());
 }
 
-Query QueryPool::getQuery(const glm::ivec2 &gridCoordinates)
+// TODO: Check that i is in range (?)
+Query QueryPool::getQuery()
 {
-    return Query(ids[i++], gridCoordinates);
+    return Query(ids[i++]);
 }
 
 void QueryPool::clear()

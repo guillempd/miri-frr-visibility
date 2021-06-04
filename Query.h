@@ -7,8 +7,7 @@
 class Query
 {
 public:
-    Query();
-    ~Query();
+    Query(GLuint id);
     void begin() const;
     void end() const;
     bool isVisible() const;

@@ -1,14 +1,8 @@
 #include "Query.h"
 
-Query::Query()
-{
-    glGenQueries(1, &id);
-}
-
-Query::~Query()
-{
-    glDeleteQueries(1, &id);
-}
+Query::Query(GLuint id)
+    : id(id)
+    {}
 
 void Query::begin() const
 {

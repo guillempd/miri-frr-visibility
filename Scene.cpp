@@ -13,7 +13,6 @@
 #include <utility>
 
 Scene::Scene()
-    // : queryPool(16*16)
 {
 
 }
@@ -47,6 +46,8 @@ void Scene::init()
     floorModel = glm::translate(floorModel, glm::vec3(n/2 - 0.5, -0.5f, -n/2 + 0.5));
     floorModel = glm::rotate(floorModel, glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
     floorModel = glm::scale(floorModel, glm::vec3(n));
+
+    queryPool = QueryPool(n*n);
 
     // entities = std::vector<std::vector<Entity>>(n, std::vector<Entity>(n));
     // for (int i = 0; i < n; ++i) {
@@ -128,7 +129,8 @@ int Scene::renderBasic()
 int Scene::renderStopAndWait()
 {
     int rendered = 0;
-    Query query;
+    queryPool.clear();
+    Query query = queryPool.getQuery();
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             glm::ivec2 gridPosition(i, j);
