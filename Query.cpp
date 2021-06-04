@@ -1,37 +1,28 @@
 #include "Query.h"
 
-Query::Query(int id, const glm::ivec2 &gridCoordinates)
-    : id(id)
-    , gridCoordinates(gridCoordinates)
-    {}
-
-// TODO: Check this works as expected
-bool Query::isComplete() const
+Query::Query()
 {
-    GLint param;
-    glGetQueryObjectiv(id, GL_QUERY_RESULT_AVAILABLE, &param);
-    return param;
+    glGenQueries(1, &id);
 }
 
-void Query::begin()
+Query::~Query()
+{
+    glDeleteQueries(1, &id);
+}
+
+void Query::begin() const
 {
     glBeginQuery(GL_ANY_SAMPLES_PASSED, id);
 }
 
-void Query::end()
+void Query::end() const
 {
     glEndQuery(GL_ANY_SAMPLES_PASSED);
 }
 
-// TODO: Check this works as expected
 bool Query::isVisible() const
 {
-    int param;
+    GLint param;
     glGetQueryObjectiv(id, GL_QUERY_RESULT, &param);
-    return param;
-}
-
-glm::ivec2 Query::getPosition() const
-{
-    return gridCoordinates;
+    return param == GL_TRUE;
 }

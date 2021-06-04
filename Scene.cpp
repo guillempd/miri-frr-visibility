@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "Query.h"
 #include "PLYReader.h"
 
 #include "imgui.h"
@@ -127,30 +128,25 @@ int Scene::renderBasic()
 int Scene::renderStopAndWait()
 {
     int rendered = 0;
-    GLuint id;
-    glGenQueries(1, &id);
+    Query query;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             glm::ivec2 gridPosition(i, j);
             if (frustumCulling && !insideFrustum(gridPosition)) continue;
 
-            glBeginQuery(GL_ANY_SAMPLES_PASSED, id);
+            query.begin();
             glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
             glDepthMask(GL_FALSE);
             renderBoundingBox(gridPosition, false);
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
             glDepthMask(GL_TRUE);
-            glEndQuery(GL_ANY_SAMPLES_PASSED);
-
-            GLint visible;
-            glGetQueryObjectiv(id, GL_QUERY_RESULT, &visible);
-            if (visible == GL_TRUE) {
+            query.end();
+            if (query.isVisible()) {
                 render(gridPosition);
                 ++rendered;
             }
         }
     }
-    glDeleteQueries(1, &id);
     return rendered;
 }
 
