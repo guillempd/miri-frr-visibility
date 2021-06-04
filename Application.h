@@ -61,9 +61,12 @@ private:
     float mouseSensitivity;
 
     int width, height;
-
-    char inputBuff[64];
-    char outputBuff[64];
+    
+    // ImGui buffers for input
+    char inputPathBuff[64];
+    char outputPathBuff[64];
+    char outputFpsBuff[64];
+    int pathDuration;
 
     // FPS measuring data
     const int SAMPLE_TIME = 1000;

@@ -104,18 +104,21 @@ void Application::render()
     }
     ImGui::End();
 
-    if (ImGui::Begin("Actions")) {
-        ImGui::InputText("input file", inputBuff, IM_ARRAYSIZE(inputBuff));
-            ImGui::SameLine();
-            if (ImGui::Button("Replay Camera Path")) {
-                int duration = scene.getCamera().beginReplay(inputBuff);
-                beginRecordFps("fps.dat", duration); // FIXME
-            }
+    if (ImGui::Begin("Record Path")) {
+        ImGui::InputText("Output Path File", outputPathBuff, IM_ARRAYSIZE(outputPathBuff));
+        ImGui::SliderInt("Duration", &pathDuration, 1, 60);
+        if (ImGui::Button("Record")) {
+            scene.getCamera().beginRecording(outputPathBuff, pathDuration);
+        }
+    }
+    ImGui::End();
 
-            ImGui::InputText("output file", outputBuff, IM_ARRAYSIZE(outputBuff));
-            ImGui::SameLine();
-            if (ImGui::Button("Record Camera Path")) {
-                scene.getCamera().beginRecording(outputBuff, 10); // TODO: Fix duration here
+    if (ImGui::Begin("Replay Path")) {
+        ImGui::InputText("Input Path File", inputPathBuff, IM_ARRAYSIZE(inputPathBuff));
+        ImGui::InputText("Output FPS File", outputFpsBuff, IM_ARRAYSIZE(outputFpsBuff));
+        if (ImGui::Button("Replay")) {
+            int duration = scene.getCamera().beginReplay(inputPathBuff);
+            beginRecordFps(outputFpsBuff, duration);
         }
     }
     ImGui::End();
