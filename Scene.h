@@ -6,6 +6,7 @@
 #include "QueryPool.h"
 #include "ShaderProgram.h"
 #include "TriangleMesh.h"
+#include "Quadtree.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
@@ -43,9 +44,20 @@ private:
 
     // Objects rendering
     void render(const glm::ivec2 &position);
-    void renderBoundingBox(const glm::ivec2 &position, bool wireframe);
+    void renderBoundingBox(const QuadtreeNode &node, bool wireframe);
+    void renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe);
+    void renderBoundingBox(const glm::mat4 &model, bool wireframe);
     void renderFloor();
+    void renderNode();
     static glm::vec3 worldPosition(const glm::ivec2 &gridPosition);
+
+    // CHC stuff
+    void CHC_render(QuadtreeNode node);
+    void CHC_issueQuery(QuadtreeNode node);
+    void CHC_pullUpVisibility(QuadtreeNode node);
+    void CHC_constructSceneHierarchy();
+    void CHC_constructSceneHierarchy(QuadtreeNodeIndex nodeIndex, int depth);
+    void CHC_renderQuadtree(QuadtreeNodeIndex nodeIndex, int depth);
 
     // Others
     void initShaders();
@@ -76,10 +88,15 @@ private:
 
     using QueryInfo = std::pair<Query,glm::ivec2>;
 
-    // Occlusion culling data
+    // Occlusion culling data (advanced)
     QueryPool queryPool;
     std::queue<QueryInfo> previousFrameQueries;
     std::unordered_set<glm::ivec2> PVS;
+
+    // Occlusion culling data (CHC)
+    Quadtree sceneHierarchy; // TODO: Correctly construct and maintain the sceneHierarchy
+    int maxDepth;
+
 };
 
 #endif // _SCENE_INCLUDE
