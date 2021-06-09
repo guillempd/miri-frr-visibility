@@ -50,13 +50,6 @@ void Scene::init()
     floorModel = glm::scale(floorModel, glm::vec3(n));
 
     queryPool = QueryPool(n*n);
-
-    // entities = std::vector<std::vector<Entity>>(n, std::vector<Entity>(n));
-    // for (int i = 0; i < n; ++i) {
-    //     for (int j = 0; j < n; ++j) {
-    //         entities[i][j].wasVisible = true;
-    //     }
-    // }
 }
 
 bool Scene::loadMesh(const char *filename)
@@ -87,6 +80,7 @@ int Scene::render()
         ImGui::Text("Occlusion Culling Strategy");
         ImGui::RadioButton("None", &occlusionCulling, NONE);
         ImGui::RadioButton("Stop and Wait", &occlusionCulling, STOP_AND_WAIT);
+        ImGui::RadioButton("Advanced", &occlusionCulling, ADVANCED);
         ImGui::RadioButton("CHC", &occlusionCulling, CHC);
     }
     ImGui::End();
@@ -105,6 +99,8 @@ int Scene::render()
             return renderBasic();
         case STOP_AND_WAIT:
             return renderStopAndWait();
+        case ADVANCED:
+            return renderAdvanced();
         case CHC:
             return renderCHC();
         default:
@@ -156,34 +152,25 @@ int Scene::renderStopAndWait()
 
 using DistancePosition = std::pair<float,glm::ivec2>;
 
-struct ComparatorFunction
+glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)
 {
-    bool operator()(const DistancePosition &lhs, const DistancePosition &rhs) {
-        return lhs.first < rhs.first;
-    }
-};
+    return glm::vec3(gridPosition.x, 0, -gridPosition.y);
+}
 
 float Scene::distanceToCamera(const glm::ivec2 &gridPosition)
 {
-    // TODO: Compute distance correctly
-    const glm::vec3 &cameraPosition = camera.getPosition();
-    return glm::length(glm::vec2(cameraPosition.x, cameraPosition.z) - glm::vec2(gridPosition));
+    return glm::distance(camera.getPosition(), worldPosition(gridPosition));
 }
 
-// TODO: Debug this, specially the interaction with frustum culling
-int Scene::renderCHC()
+// Render in front to back order using visibility from previous frame (PVS)
+// If object in PVS -> Render directly and issue query for next frame
+// If object not in PVS -> Do not render and issue query to be resolved later this frame
+// After all scene has been traverse, resolve the queries that were still pending for this frame
+int Scene::renderAdvanced()
 {
-    // Render in front to back order
-    // Resolve queries from previous frame
-    // If V -> Render directly and issue query for next frame
-    // If N -> Issue query to be resolved at the end of this frame
-    // At the end of the frame, resolve queries for N, if needed render them
-
-    int rendered = 0;
-    std::unordered_set<glm::ivec2> nextPVS;
-
     // Front to back ordering of the scene
     std::vector<DistancePosition> E;
+    E.reserve(n*n);
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             glm::ivec2 gridPosition(i, j);
@@ -193,17 +180,19 @@ int Scene::renderCHC()
             }
         }
     }
-    ComparatorFunction comp;
-    std::sort(E.begin(), E.end(), comp);
 
-    // Resolve visbility from previous frame
-    std::queue<QueryInfo> previousFrameQueries;
+    auto compareFunction = [](const DistancePosition &x, const DistancePosition &y) {return x.first < y.first; };
+    std::sort(E.begin(), E.end(), compareFunction);
+
+    // Resolve visibility from previous frame
     while (!previousFrameQueries.empty()) {
-        auto [query, gridPosition] = previousFrameQueries.front();
-        previousFrameQueries.pop();
-        if (query.isVisible()) V.insert(gridPosition);
+        auto [query, gridPosition] = previousFrameQueries.front(); previousFrameQueries.pop();
+        if (query.isVisible()) PVS.insert(gridPosition);
     }
+
     queryPool.clear();
+    int rendered = 0;
+    std::unordered_set<glm::ivec2> nextPVS;
 
     // Render front to back using visibility from previous frame
     std::queue<QueryInfo> currentFrameQueries;
@@ -214,8 +203,8 @@ int Scene::renderCHC()
                 currentFrameQueries.pop();
                 if (query.isVisible()) {
                     render(queryPosition);
-                    ++rendered;
                     nextPVS.insert(queryPosition);
+                    ++rendered;
                 }
                 if (currentFrameQueries.empty()) break;
                 else {
@@ -225,7 +214,7 @@ int Scene::renderCHC()
                 }
             }    
         }
-        bool inV = (V.find(gridPosition) != V.end());
+        bool inV = (PVS.find(gridPosition) != PVS.end());
         if (inV) {
             Query query = queryPool.getQuery();
             query.begin();
@@ -249,21 +238,21 @@ int Scene::renderCHC()
 
     // Resolve the visibility of this frame that is still unknown
     while (!currentFrameQueries.empty()) {
-        auto [query, gridPosition] = currentFrameQueries.front();
-        currentFrameQueries.pop();
+        auto [query, gridPosition] = currentFrameQueries.front(); currentFrameQueries.pop();
         if (query.isVisible()) {
             render(gridPosition);
             nextPVS.insert(gridPosition);
             ++rendered;
         }
     }
-    V = std::move(nextPVS);
+
+    PVS = std::move(nextPVS);
     return rendered;
 }
 
-glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)
+int Scene::renderCHC()
 {
-    return glm::vec3(gridPosition.x, 0, -gridPosition.y);
+    return 0;
 }
 
 void Scene::render(const glm::ivec2 &gridPosition)
@@ -330,78 +319,6 @@ bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
     }
     return true;
 }
-
-// struct ComparisonFunction
-// {
-//     bool operator()(const std::pair<float, glm::ivec2> &lhs, const std::pair<float, glm::ivec2> &rhs)
-//     {
-//         return lhs.first < rhs.first;
-//     }
-// };
-
-// int Scene::renderWithOcclusionCulling()
-// {
-//     const int n = 16;
-//     int rendered = 0;
-//     glm::vec3 cameraPosition = camera.getPosition();
-
-//     // Resolve previous frame queries
-//     while (!previousFrameQueries.empty()) {
-//         const Query &query = previousFrameQueries.front();
-//         previousFrameQueries.pop();
-//         glm::ivec2 position = query.getPosition();
-//         entities[position.x][position.y].wasVisible = query.isVisible();
-//     }
-//     queryPool.clear();
-
-//     // Render front to back
-//     std::vector<std::pair<float, glm::ivec2>> entitiesPosition;
-//     entities.reserve(n * n);
-//     for (int i = 0; i < n; ++i) {
-//         for (int j = 0; j < n; ++j) {
-//             glm::vec3 displacement = objectPosition(glm::ivec2(i, j)) - cameraPosition;
-//             float distanceSq = glm::dot(displacement, displacement);
-//             entitiesPosition.push_back(std::make_pair(distanceSq, glm::ivec2(i, j)));
-//         }
-//     }
-//     ComparisonFunction func;
-//     std::sort(entitiesPosition.begin(), entitiesPosition.end(), func);
-
-//     std::queue<Query> currentFrameQueries;
-//     for (auto entityPosition : entitiesPosition) {
-//         glm::ivec2 position = entityPosition.second;
-//         Entity entity = entities[position.x][position.y];
-//         if (entity.wasVisible) {
-//             Query query = queryPool.getQuery(position);
-//             query.begin();
-//             render(position);
-//             ++rendered;
-//             query.end();
-//             previousFrameQueries.push(query);
-//         }
-//         else {
-//             Query query = queryPool.getQuery(position);
-//             query.begin();
-//             renderQueryBox(position);
-//             query.end();
-//             currentFrameQueries.push(query);
-//         }
-//     }
-
-//     // Resolve this frame queries and possibly render the few remaining
-//     while (!currentFrameQueries.empty()) {
-//         const Query &query = currentFrameQueries.front();
-//         currentFrameQueries.pop();
-//         if (query.isVisible()) {
-//             glm::ivec2 position = query.getPosition();
-//             entities[position.x][position.y].wasVisible = true;
-//             render(position);
-//             ++rendered;
-//         }
-//     }
-
-//     return rendered;
-// }
 
 void Scene::initShaders()
 {

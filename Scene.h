@@ -35,6 +35,7 @@ private:
     // Scene rendering algorithms
     int renderBasic();
     int renderStopAndWait();
+    int renderAdvanced();
     int renderCHC();
 
     // Frustum culling implementation
@@ -69,6 +70,7 @@ private:
     {
         NONE,
         STOP_AND_WAIT,
+        ADVANCED,
         CHC
     };
 
@@ -77,8 +79,7 @@ private:
     // Occlusion culling data
     QueryPool queryPool;
     std::queue<QueryInfo> previousFrameQueries;
-    std::unordered_set<glm::ivec2> V; // TODO: Rename to PVS
-    // std::vector<std::vector<Entity>> entities;
+    std::unordered_set<glm::ivec2> PVS;
 };
 
 #endif // _SCENE_INCLUDE
