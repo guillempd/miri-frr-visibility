@@ -7,14 +7,13 @@
 #include "ShaderProgram.h"
 #include "TriangleMesh.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
+#include <glm/gtx/hash.hpp>
 
 #include <queue>
-
-struct Entity
-{
-    bool wasVisible;
-};
+#include <utility>
+#include <unordered_set>
 
 // Scene contains all the entities of our game.
 // It is responsible for updating and render them.
@@ -49,6 +48,7 @@ private:
 
     // Others
     void initShaders();
+    float distanceToCamera(const glm::ivec2 &gridPosition);
 
 private:
     Camera camera;
@@ -72,9 +72,12 @@ private:
         CHC
     };
 
+    using QueryInfo = std::pair<Query,glm::ivec2>;
+
     // Occlusion culling data
     QueryPool queryPool;
-    // std::queue<Query> previousFrameQueries;
+    std::queue<QueryInfo> previousFrameQueries;
+    std::unordered_set<glm::ivec2> V; // TODO: Rename to PVS
     // std::vector<std::vector<Entity>> entities;
 };
 

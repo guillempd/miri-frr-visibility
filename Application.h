@@ -69,7 +69,7 @@ private:
     int pathDuration;
 
     // FPS measuring data
-    const int SAMPLE_TIME = 1000;
+    const int SAMPLE_TIME = 250;
     int time;
     int frames;
     float fps;

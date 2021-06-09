@@ -20,3 +20,10 @@ bool Query::isVisible() const
     glGetQueryObjectiv(id, GL_QUERY_RESULT, &param);
     return param == GL_TRUE;
 }
+
+bool Query::resultIsReady() const
+{
+    GLint param;
+    glGetQueryObjectiv(id, GL_QUERY_RESULT_AVAILABLE, &param);
+    return param == GL_TRUE;
+}

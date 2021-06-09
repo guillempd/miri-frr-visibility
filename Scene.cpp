@@ -5,12 +5,14 @@
 #include "imgui.h"
 
 #define GLM_FORCE_RADIANS
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtx/hash.hpp>
 
 #include <algorithm>
 #include <iostream>
-#include <utility>
+#include <unordered_set>
 
 Scene::Scene()
 {
@@ -152,10 +154,111 @@ int Scene::renderStopAndWait()
     return rendered;
 }
 
-// TODO: Implement
+using DistancePosition = std::pair<float,glm::ivec2>;
+
+struct ComparatorFunction
+{
+    bool operator()(const DistancePosition &lhs, const DistancePosition &rhs) {
+        return lhs.first < rhs.first;
+    }
+};
+
+float Scene::distanceToCamera(const glm::ivec2 &gridPosition)
+{
+    // TODO: Compute distance correctly
+    const glm::vec3 &cameraPosition = camera.getPosition();
+    return glm::length(glm::vec2(cameraPosition.x, cameraPosition.z) - glm::vec2(gridPosition));
+}
+
+// TODO: Debug this, specially the interaction with frustum culling
 int Scene::renderCHC()
 {
-    return renderStopAndWait();
+    // Render in front to back order
+    // Resolve queries from previous frame
+    // If V -> Render directly and issue query for next frame
+    // If N -> Issue query to be resolved at the end of this frame
+    // At the end of the frame, resolve queries for N, if needed render them
+
+    int rendered = 0;
+    std::unordered_set<glm::ivec2> nextPVS;
+
+    // Front to back ordering of the scene
+    std::vector<DistancePosition> E;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            glm::ivec2 gridPosition(i, j);
+            if (!frustumCulling || insideFrustum(gridPosition)) {
+                float d = distanceToCamera(gridPosition);
+                E.emplace_back(d, gridPosition);
+            }
+        }
+    }
+    ComparatorFunction comp;
+    std::sort(E.begin(), E.end(), comp);
+
+    // Resolve visbility from previous frame
+    std::queue<QueryInfo> previousFrameQueries;
+    while (!previousFrameQueries.empty()) {
+        auto [query, gridPosition] = previousFrameQueries.front();
+        previousFrameQueries.pop();
+        if (query.isVisible()) V.insert(gridPosition);
+    }
+    queryPool.clear();
+
+    // Render front to back using visibility from previous frame
+    std::queue<QueryInfo> currentFrameQueries;
+    for (auto [d, gridPosition] : E) {
+        if (!currentFrameQueries.empty()) {
+            auto [query, queryPosition] = currentFrameQueries.front();
+            while (query.resultIsReady()) {
+                currentFrameQueries.pop();
+                if (query.isVisible()) {
+                    render(queryPosition);
+                    ++rendered;
+                    nextPVS.insert(queryPosition);
+                }
+                if (currentFrameQueries.empty()) break;
+                else {
+                    auto [query_, queryPosition_] = currentFrameQueries.front();
+                    query = query_;
+                    queryPosition = queryPosition_;
+                }
+            }    
+        }
+        bool inV = (V.find(gridPosition) != V.end());
+        if (inV) {
+            Query query = queryPool.getQuery();
+            query.begin();
+            render(gridPosition);
+            query.end();
+            ++rendered;
+            previousFrameQueries.emplace(query, gridPosition);
+        }
+        else { // !inV
+            Query query = queryPool.getQuery();
+            query.begin();
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+            glDepthMask(GL_FALSE);
+            renderBoundingBox(gridPosition, false);
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            glDepthMask(GL_TRUE);
+            query.end();
+            currentFrameQueries.emplace(query, gridPosition);
+        }
+    }
+
+    // Resolve the visibility of this frame that is still unknown
+    while (!currentFrameQueries.empty()) {
+        auto [query, gridPosition] = currentFrameQueries.front();
+        currentFrameQueries.pop();
+        if (query.isVisible()) {
+            render(gridPosition);
+            nextPVS.insert(gridPosition);
+            ++rendered;
+        }
+    }
+    V = std::move(nextPVS);
+    return rendered;
 }
 
 glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)

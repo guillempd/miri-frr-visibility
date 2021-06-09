@@ -39,8 +39,8 @@ void Camera::update(int deltaTime)
 {
     if (replayMode) {
         replayTime += deltaTime;
-        int index = replayTime/1000;
-        float t = static_cast<float>(replayTime - index*1000)/1000.0f;
+        int index = replayTime/250;
+        float t = static_cast<float>(replayTime - index*250)/250.0f;
         if (index < replayCheckpoints) {
             glm::vec3 position_i = replayPositions[index];
             glm::vec3 position_i_next = replayPositions[index+1];
@@ -68,7 +68,7 @@ void Camera::update(int deltaTime)
     if (!recordMode) return;
 
     recordTimeSinceLastCheckpoint += deltaTime;
-    if (recordTimeSinceLastCheckpoint >= 1000) {
+    if (recordTimeSinceLastCheckpoint >= 250) {
         recordTimeSinceLastCheckpoint = 0;
         recordPositions.push_back(position);
         recordLookDirections.push_back(lookDirection);
@@ -96,8 +96,8 @@ void Camera::beginRecording(const std::string &filePath, int duration)
 {
     recordMode = true;
     recordFilePath = filePath;
-    recordCheckpoints = duration;
-    recordTimeSinceLastCheckpoint = 1000;
+    recordCheckpoints = 4 * duration;
+    recordTimeSinceLastCheckpoint = 250;
     recordPositions.reserve(recordCheckpoints + 1);
     recordLookDirections.reserve(recordCheckpoints + 1);
 }

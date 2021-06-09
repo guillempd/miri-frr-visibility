@@ -11,6 +11,7 @@ public:
     void begin() const;
     void end() const;
     bool isVisible() const;
+    bool resultIsReady() const;
 private:
     GLuint id;
 };
