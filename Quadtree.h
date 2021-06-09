@@ -7,8 +7,9 @@
 struct QuadtreeNode
 {
     AABB aabb;
-    glm::ivec2 gridPosition;
+    glm::ivec2 gridPosition; // Used for leaf nodes to render the object
     bool visible; // TODO: Previous or current frame (?)
+    unsigned int lastVisited;
 };
 
 using QuadtreeNodeIndex = std::size_t;
@@ -17,20 +18,25 @@ using QuadtreeNodeIndex = std::size_t;
 struct Quadtree
 {
     std::vector<QuadtreeNode> nodes;
-    std::size_t n;
     
     QuadtreeNodeIndex root()
     {
-        return 1;
+        return 0;
     }
 
     QuadtreeNodeIndex parent(QuadtreeNodeIndex i)
     {
-        return i << 2;
+        return (i-1)/4;
     }
 
     bool hasParent(QuadtreeNodeIndex i)
     {
-        return parent(i) > 0;
+        return i > 0;
+    }
+
+    bool isLeaf(QuadtreeNodeIndex i)
+    {
+        QuadtreeNodeIndex child = 4 * i + 1;
+        return child >= nodes.size();
     }
 };

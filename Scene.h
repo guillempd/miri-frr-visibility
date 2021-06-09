@@ -13,6 +13,7 @@
 #include <glm/gtx/hash.hpp>
 
 #include <queue>
+#include <stack>
 #include <utility>
 #include <unordered_set>
 
@@ -52,12 +53,15 @@ private:
     static glm::vec3 worldPosition(const glm::ivec2 &gridPosition);
 
     // CHC stuff
-    void CHC_render(QuadtreeNode node);
-    void CHC_issueQuery(QuadtreeNode node);
-    void CHC_pullUpVisibility(QuadtreeNode node);
     void CHC_constructSceneHierarchy();
     void CHC_constructSceneHierarchy(QuadtreeNodeIndex nodeIndex, int depth);
-    void CHC_renderQuadtree(QuadtreeNodeIndex nodeIndex, int depth);
+    void CHC_pullUpVisibility(QuadtreeNodeIndex nodeIndex);
+    void CHC_addChildren(QuadtreeNodeIndex nodeIndex, std::stack<QuadtreeNodeIndex> &nodes);
+    int CHC_render(QuadtreeNodeIndex nodeIndex);
+    void CHC_renderBoundingBox(QuadtreeNodeIndex nodeIndex, bool wireframe);
+    Query CHC_renderWithQuery(QuadtreeNodeIndex nodeIndex);
+    Query CHC_issueQuery(QuadtreeNodeIndex nodeIndex);
+    void CHC_renderQuadtree(QuadtreeNodeIndex nodeIndex);
 
     // Others
     void initShaders();
@@ -77,6 +81,7 @@ private:
     bool frustumCulling;
     int occlusionCulling;
     int n;
+    unsigned int currentFrame;
 
     enum OcclusionQueriesAlgorithm
     {
@@ -94,8 +99,9 @@ private:
     std::unordered_set<glm::ivec2> PVS;
 
     // Occlusion culling data (CHC)
-    Quadtree sceneHierarchy; // TODO: Correctly construct and maintain the sceneHierarchy
+    Quadtree sceneHierarchy;
     int maxDepth;
+    std::vector<std::vector<bool>> alreadyRendered;
 
 };
 

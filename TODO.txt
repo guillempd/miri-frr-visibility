@@ -11,3 +11,5 @@
 28/05/2021: Implement extraction of fps data along a path
 -------------------------------------------
 02/06/2021: Add skybox to better orient in the space (MAYBE)
+-------------------------------------------
+09/06/2021: Improve CHC by rendering bounding box in leaf nodes instead of quadtree bounding box (much larger)
