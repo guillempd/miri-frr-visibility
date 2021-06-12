@@ -328,8 +328,8 @@ int Scene::renderAdvanced()
 // TODO: Combine with Frustum Culling
 int Scene::renderCHC()
 {
-    if (debugMode) CHC_renderQuadtree(sceneHierarchy.root());
-    debugMode = false; // Dirty hack so that bounding boxes are not drawn twice
+    // if (debugMode) CHC_renderQuadtree(sceneHierarchy.root());
+    // debugMode = false; // Dirty hack so that bounding boxes are not drawn twice
 
     using QueryInfoCHC = std::pair<Query,QuadtreeNodeIndex>;
     alreadyRendered = std::vector<std::vector<bool>> (n, std::vector<bool>(n, false));
@@ -389,7 +389,7 @@ int Scene::renderCHC()
             }
         }
     }
-    debugMode = true;
+    // debugMode = true;
     return rendered;
 }
 

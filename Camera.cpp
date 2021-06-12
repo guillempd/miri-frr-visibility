@@ -21,8 +21,8 @@ void Camera::init()
     up = glm::vec3(0.0f, 1.0f, 0.0f);
     lookDirection = glm::vec3(0.0f, 0.0f, -1.0f);
 
-    speed = 0.005f;
-    sensitivity = 0.05f;
+    speed = 0.0025f;
+    sensitivity = 0.025f;
 
     near = 0.01f;
     far = 100.0f;
