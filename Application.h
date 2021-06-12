@@ -81,6 +81,7 @@ private:
     std::vector<float> recordFps;
     int recordCheckpoints;
     int recordTimeSinceLastCheckpoint;
+    int recordAccumulatedTime;
 };
 
 #endif // _APPLICATION_INCLUDE

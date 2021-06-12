@@ -56,10 +56,11 @@ void Application::updateFrameRate(int deltaTime)
 
     if (recordMode) {
         recordTimeSinceLastCheckpoint += deltaTime;
+        recordAccumulatedTime += deltaTime;
         if (recordTimeSinceLastCheckpoint >= 250) {
-            recordTime.push_back(recordTimeSinceLastCheckpoint);
+            recordTime.push_back(recordAccumulatedTime);
             recordFps.push_back(fps);
-            recordTimeSinceLastCheckpoint = 0;
+            recordTimeSinceLastCheckpoint -= 250;
             if (!recordCheckpoints) endRecordFps();
             else --recordCheckpoints;
         }
@@ -72,6 +73,7 @@ void Application::beginRecordFps(const std::string &filePath, int duration)
     recordFilePath = filePath;
     recordCheckpoints = duration;
     recordTimeSinceLastCheckpoint = 250;
+    recordAccumulatedTime = 0;
     recordTime.reserve(recordCheckpoints + 1);
     recordFps.reserve(recordCheckpoints + 1);
 }
@@ -84,11 +86,8 @@ void Application::endRecordFps()
     if (fout.is_open()) {
         int n = recordFps.size();
         int accumulatedTime = 0;
-        fout << "0.0 " << recordFps[0] << '\n';
-        for (int i = 1; i < n; ++i) {
-            accumulatedTime += recordTime[i];
-            fout << accumulatedTime/1000.0f << ' ' << recordFps[i] << '\n';
-        }
+        for (int i = 0; i < n; ++i)
+            fout << recordTime[i]/1000.0f << ' ' << recordFps[i] << '\n';
     }
     recordTime.clear();
     recordFps.clear();

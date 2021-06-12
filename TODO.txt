@@ -1,15 +1,1 @@
-23/04/2021: Hide ImGui in capture mode
--------------------------------------------
-19/05/2021: (EXTRA) Perform test with bounding sphere first, then perform test with bounding box (for frustum culling)
-19/05/2021: Implement Coherent Hierarchical Culling
--------------------------------------------
-28/05/2021: Queries can be reused effectively
-28/05/2021: Where to put glFinish()? (LOW PRIORITY)
--------------------------------------------
-28/05/2021: Reinitialize camera with previous position and orientation (MAYBE)
-28/05/2021: Block interface/do not allow to press start path again (LOW PRIORITY)
-28/05/2021: Implement extraction of fps data along a path
--------------------------------------------
-02/06/2021: Add skybox to better orient in the space (MAYBE)
--------------------------------------------
-09/06/2021: Improve CHC by rendering bounding box in leaf nodes instead of quadtree bounding box (much larger)
+12/06/2021: Be careful with the interactions of the queries between CHC and Advanced

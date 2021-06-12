@@ -15,8 +15,6 @@
 #define GLUT_SCROLL_UP      0x0003
 #define GLUT_SCROLL_DOWN    0x0004
 
-#define TARGET_FRAME_TIME 1000.0f/250.0f
-
 static int prevTime;
 static bool capturingMouse;
 

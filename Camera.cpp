@@ -69,7 +69,7 @@ void Camera::update(int deltaTime)
 
     recordTimeSinceLastCheckpoint += deltaTime;
     if (recordTimeSinceLastCheckpoint >= 250) {
-        recordTimeSinceLastCheckpoint = 0;
+        recordTimeSinceLastCheckpoint -= 250;
         recordPositions.push_back(position);
         recordLookDirections.push_back(lookDirection);
         if (!recordCheckpoints) endRecording();
