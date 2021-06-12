@@ -6,5 +6,5 @@ set yrange [0:300]
 set xlabel "time"
 set ylabel "fps"
 plot\
-"fps_2.dat" title "No Optimizations" w lp,\
-"fps_2_fc.dat" title "Frustum Culling" w lp
+"fps.dat" title "No Optimizations" w lp,\
+"fps_fc.dat" title "Frustum Culling" w lp

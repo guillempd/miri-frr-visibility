@@ -6,5 +6,5 @@ set yrange [0:300]
 set xlabel "time"
 set ylabel "fps"
 plot\
-"fps_2_sw.dat" title "Stop and Wait" w lp,\
-"fps_2_sw_fc.dat" title "Stop and Wait + Frustum Culling" w lp
+"fps_sw.dat" title "Stop and Wait" w lp,\
+"fps_sw_fc.dat" title "Stop and Wait + Frustum Culling" w lp
