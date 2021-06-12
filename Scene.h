@@ -34,40 +34,40 @@ public:
     Camera &getCamera() {return camera;}
 
 private:
+    // Frustum culling implementation
+    bool insideFrustum(const AABB &aabb) const;
+    bool insideFrustum(const glm::ivec2 &gridPosition) const;
+    
     // Scene rendering algorithms
     int renderBasic();
     int renderStopAndWait();
     int renderAdvanced();
     int renderCHC();
 
-    // Frustum culling implementation
-    bool insideFrustum(const glm::ivec2 &gridPosition) const;
-
     // Objects rendering
-    void render(const glm::ivec2 &position);
-    void renderBoundingBox(const QuadtreeNode &node, bool wireframe);
+    void render(const glm::ivec2 &gridPosition);
     void renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe);
     void renderBoundingBox(const glm::mat4 &model, bool wireframe);
     void renderFloor();
-    void renderNode();
     static glm::vec3 worldPosition(const glm::ivec2 &gridPosition);
 
-    // CHC stuff
-    void CHC_constructSceneHierarchy();
-    void CHC_constructSceneHierarchy(QuadtreeNodeIndex nodeIndex, int depth);
-    void CHC_pullUpVisibility(QuadtreeNodeIndex nodeIndex);
-    void CHC_addChildren(QuadtreeNodeIndex nodeIndex, std::stack<QuadtreeNodeIndex> &nodes);
-    int CHC_render(QuadtreeNodeIndex nodeIndex);
-    void CHC_renderBoundingBox(QuadtreeNodeIndex nodeIndex, bool wireframe);
-    Query CHC_renderWithQuery(QuadtreeNodeIndex nodeIndex);
-    Query CHC_issueQuery(QuadtreeNodeIndex nodeIndex);
-    void CHC_renderQuadtree(QuadtreeNodeIndex nodeIndex);
+    // CHC implementation functions
+    void buildSceneHierarchy();
+    void buildSceneHierarchy(QuadtreeNodeIndex nodeIndex);
+    void pullUpVisibility(QuadtreeNodeIndex nodeIndex);
+    void addChildren(QuadtreeNodeIndex nodeIndex, std::stack<QuadtreeNodeIndex> &nodes);
+    int render(QuadtreeNodeIndex nodeIndex);
+    void renderBoundingBox(QuadtreeNodeIndex nodeIndex, bool wireframe);
+    Query renderWithQuery(QuadtreeNodeIndex nodeIndex);
+    Query issueQuery(QuadtreeNodeIndex nodeIndex);
+    void renderSceneHierarchy(QuadtreeNodeIndex nodeIndex);
 
     // Others
     void initShaders();
     float distanceToCamera(const glm::ivec2 &gridPosition);
 
 private:
+    // Scene elements
     Camera camera;
     TriangleMesh mesh;
     TriangleMesh cube;
@@ -92,8 +92,9 @@ private:
     };
 
     using QueryInfo = std::pair<Query,glm::ivec2>;
+    using DistancePosition = std::pair<float,glm::ivec2>;
 
-    // Occlusion culling data (advanced)
+    // Occlusion culling data (Advanced)
     QueryPool queryPool;
     std::queue<QueryInfo> previousFrameQueries;
     std::unordered_set<glm::ivec2> PVS;

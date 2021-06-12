@@ -18,75 +18,73 @@ Scene::Scene()
 
 }
 
+
 Scene::~Scene()
 {
 
 }
 
+
 void Scene::init()
 {
     n = 16;
-    maxDepth = 4;
-
     frustumCulling = false;
     occlusionCulling = false;
     debugMode = false;
     pathMode = false;
+    currentFrame = 0;
 
     initShaders();
 
     camera.init();
-
     loadMesh("../models/bunny.ply");
-
     cube.buildCube();
     cube.sendToOpenGL(basicProgram);
-
     floor.buildQuad();
     floor.sendToOpenGL(basicProgram);
-
     floorModel = glm::mat4(1.0f);
     floorModel = glm::translate(floorModel, glm::vec3(n/2 - 0.5, -0.5f, -n/2 + 0.5));
     floorModel = glm::rotate(floorModel, glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
     floorModel = glm::scale(floorModel, glm::vec3(n));
 
-
-    currentFrame = 0;
-
-    CHC_constructSceneHierarchy();
+    maxDepth = 4; // maxDepth = floor(log_2(n))
+    buildSceneHierarchy();
 }
 
-void Scene::CHC_constructSceneHierarchy()
+
+void Scene::buildSceneHierarchy()
 {
-    // TODO: Correctly compute this number as (4^(maxDepth + 1) - 1)/3
-    // Where maxDepth = log_2(n)
-    sceneHierarchy.nodes = std::vector<QuadtreeNode>(341);
-    queryPool = QueryPool(341);
+    // Number of nodes of a full quadtree with maxDepth
+    int numNodes = (std::pow(4, maxDepth + 1) - 1)/ 3;
+    sceneHierarchy.nodes = std::vector<QuadtreeNode>(numNodes);
+    queryPool = QueryPool(numNodes);
     queryPool.clear();
-     
+
+    // Compute the bounding box of the root node
     QuadtreeNodeIndex rootIndex = sceneHierarchy.root();
     QuadtreeNode &root = sceneHierarchy.nodes[rootIndex];
 
-    // TODO: Improve this bounding box by taking into account the correct height
     root.aabb.min = glm::vec3(0.0f, mesh.aabb.min.y, 0.0f);
     root.aabb.min += glm::vec3(-0.5f, 0.0f, 0.5f);
     root.aabb.max = glm::vec3(n, mesh.aabb.max.y, -n);
     root.aabb.max += glm::vec3(-0.5f, 0.0f, 0.5f);
 
-    CHC_constructSceneHierarchy(rootIndex, 0);
+    // Recursive function that builds the rest of the hierarchy
+    buildSceneHierarchy(rootIndex);
 }
 
-void Scene::CHC_constructSceneHierarchy(QuadtreeNodeIndex nodeIndex, int depth)
+
+void Scene::buildSceneHierarchy(QuadtreeNodeIndex nodeIndex)
 {
     QuadtreeNode &node = sceneHierarchy.nodes[nodeIndex];
     node.visible = true;
-    node.lastVisited = 0;
+    node.lastVisited = currentFrame;
 
     glm::vec2 aabbMin(node.aabb.min.x, node.aabb.min.z);
     glm::vec2 aabbMax(node.aabb.max.x, node.aabb.max.z);
     glm::vec2 aabbCenter = (aabbMin + aabbMax) / 2.0f;
-    if (depth < maxDepth)
-    {
+
+    if (!sceneHierarchy.isLeaf(nodeIndex)) {
         float minY = node.aabb.min.y;
         float maxY = node.aabb.max.y;
 
@@ -110,15 +108,16 @@ void Scene::CHC_constructSceneHierarchy(QuadtreeNodeIndex nodeIndex, int depth)
         trChild.aabb.min = glm::vec3(aabbCenter.x, minY, aabbCenter.y);
         trChild.aabb.max = glm::vec3(aabbMax.x, maxY, aabbMax.y);
 
-        CHC_constructSceneHierarchy(blChildIndex, depth + 1);
-        CHC_constructSceneHierarchy(brChildIndex, depth + 1);
-        CHC_constructSceneHierarchy(tlChildIndex, depth + 1);
-        CHC_constructSceneHierarchy(trChildIndex, depth + 1);
+        buildSceneHierarchy(blChildIndex);
+        buildSceneHierarchy(brChildIndex);
+        buildSceneHierarchy(tlChildIndex);
+        buildSceneHierarchy(trChildIndex);
     }
-    else { // depth == maxDepth
-        node.gridPosition = glm::ivec2(aabbCenter.x, - aabbCenter.y);
+    else {
+        node.gridPosition = glm::ivec2(aabbCenter.x, -aabbCenter.y);
     }
 }
+
 
 bool Scene::loadMesh(const char *filename)
 {
@@ -133,10 +132,12 @@ bool Scene::loadMesh(const char *filename)
     return bSuccess;
 }
 
+
 void Scene::update(int deltaTime)
 {
     camera.update(deltaTime);
 }
+
 
 int Scene::render()
 {
@@ -178,6 +179,7 @@ int Scene::render()
     }
 }
 
+
 int Scene::renderBasic()
 {
     int rendered = 0;
@@ -192,6 +194,7 @@ int Scene::renderBasic()
     }
     return rendered;
 }
+
 
 int Scene::renderStopAndWait()
 {
@@ -219,17 +222,6 @@ int Scene::renderStopAndWait()
     return rendered;
 }
 
-using DistancePosition = std::pair<float,glm::ivec2>;
-
-glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)
-{
-    return glm::vec3(gridPosition.x, 0, -gridPosition.y);
-}
-
-float Scene::distanceToCamera(const glm::ivec2 &gridPosition)
-{
-    return glm::distance(camera.getPosition(), worldPosition(gridPosition));
-}
 
 // Render in front to back order using visibility from previous frame (PVS)
 // If object in PVS -> Render directly and issue query for next frame
@@ -324,13 +316,10 @@ int Scene::renderAdvanced()
     return rendered;
 }
 
-// See GPU Gems 2
-// TODO: Combine with Frustum Culling
+
+// CHC implementation as 
 int Scene::renderCHC()
 {
-    // if (debugMode) CHC_renderQuadtree(sceneHierarchy.root());
-    // debugMode = false; // Dirty hack so that bounding boxes are not drawn twice
-
     using QueryInfoCHC = std::pair<Query,QuadtreeNodeIndex>;
     alreadyRendered = std::vector<std::vector<bool>> (n, std::vector<bool>(n, false));
 
@@ -349,11 +338,11 @@ int Scene::renderCHC()
                 queries.pop();
 
                 if (query.isVisible()) {
-                    CHC_pullUpVisibility(nodeIndex);
+                    pullUpVisibility(nodeIndex);
 
                     bool isLeaf = sceneHierarchy.isLeaf(nodeIndex);
-                    if (isLeaf) rendered += CHC_render(nodeIndex);
-                    else CHC_addChildren(nodeIndex, nodes);
+                    if (isLeaf) rendered += render(nodeIndex);
+                    else addChildren(nodeIndex, nodes);
                 }
 
                 if (queries.empty()) break;
@@ -364,7 +353,7 @@ int Scene::renderCHC()
             }
         }
 
-        // Traverse the nodes of the hierarchy using the information we have to render them
+        // Traverse the hierarchy of nodes using the previous frame visibility to render them
         if (!nodes.empty()) {
             QuadtreeNodeIndex nodeIndex = nodes.top(); nodes.pop();
             QuadtreeNode &node = sceneHierarchy.nodes[nodeIndex];
@@ -374,26 +363,30 @@ int Scene::renderCHC()
 
             node.visible = false;
             node.lastVisited = currentFrame;
-
-            if (wasVisible) {
-                if (isLeaf) {
-                    Query query = CHC_renderWithQuery(nodeIndex);
-                    queries.emplace(query, nodeIndex);
-                    ++rendered;
+            
+            // If node can be frustum culled there is nothing more to do
+            if (!frustumCulling || insideFrustum(node.aabb)) {
+                if (wasVisible) {
+                    if (isLeaf) {
+                        Query query = renderWithQuery(nodeIndex);
+                        queries.emplace(query, nodeIndex);
+                        ++rendered;
+                    }
+                    else addChildren(nodeIndex, nodes);
                 }
-                else CHC_addChildren(nodeIndex, nodes);
-            }
-            else {
-                Query query = CHC_issueQuery(nodeIndex); // this is equivalent to just issuing a query
-                queries.emplace(query, nodeIndex);
+                else {
+                    Query query = issueQuery(nodeIndex);
+                    queries.emplace(query, nodeIndex);
+                }
             }
         }
     }
-    // debugMode = true;
     return rendered;
 }
 
-void Scene::CHC_addChildren(QuadtreeNodeIndex nodeIndex, std::stack<QuadtreeNodeIndex> &nodes)
+
+// Add the children of the node sorted by distance to the camera (front to back rendering)
+void Scene::addChildren(QuadtreeNodeIndex nodeIndex, std::stack<QuadtreeNodeIndex> &nodes)
 {
     QuadtreeNodeIndex blChildIndex = 4 * nodeIndex + 1;
     QuadtreeNodeIndex brChildIndex = 4 * nodeIndex + 2;
@@ -418,21 +411,7 @@ void Scene::CHC_addChildren(QuadtreeNodeIndex nodeIndex, std::stack<QuadtreeNode
 }
 
 
-
-int Scene::CHC_render(QuadtreeNodeIndex nodeIndex)
-{
-    QuadtreeNode &node = sceneHierarchy.nodes[nodeIndex];
-    if (alreadyRendered[node.gridPosition.x][node.gridPosition.y]) {
-        return 0;
-    }
-    else {
-        render(node.gridPosition);
-        alreadyRendered[node.gridPosition.x][node.gridPosition.y] = true;
-        return 1;
-    }
-}
-
-Query Scene::CHC_renderWithQuery(QuadtreeNodeIndex nodeIndex)
+Query Scene::renderWithQuery(QuadtreeNodeIndex nodeIndex)
 {
     QuadtreeNode &node = sceneHierarchy.nodes[nodeIndex];
     Query query = queryPool.getQuery();
@@ -443,32 +422,57 @@ Query Scene::CHC_renderWithQuery(QuadtreeNodeIndex nodeIndex)
     return query;
 }
 
-Query Scene::CHC_issueQuery(QuadtreeNodeIndex nodeIndex)
+
+Query Scene::issueQuery(QuadtreeNodeIndex nodeIndex)
 {
     Query query = queryPool.getQuery();
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     glDepthMask(GL_FALSE);
     query.begin();
-    CHC_renderBoundingBox(nodeIndex, false);
+    renderBoundingBox(nodeIndex, false);
     query.end();
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glDepthMask(GL_TRUE);
     return query;
 }
 
+
 // Set as visible the node and all of its ancestors
-void Scene::CHC_pullUpVisibility(QuadtreeNodeIndex nodeIndex)
+void Scene::pullUpVisibility(QuadtreeNodeIndex nodeIndex)
 {
-    QuadtreeNode *node = &sceneHierarchy.nodes[nodeIndex];
-    while (!node->visible) {
-        node->visible = true;
-        if (!sceneHierarchy.hasParent(nodeIndex)) break;
-        else {
-            QuadtreeNodeIndex parentIndex = sceneHierarchy.parent(nodeIndex);
-            node = &sceneHierarchy.nodes[parentIndex];
-        }
+    QuadtreeNode &node = sceneHierarchy.nodes[nodeIndex];
+    if (!node.visible) {
+        node.visible = true;
+        if (sceneHierarchy.hasParent(nodeIndex)) pullUpVisibility(sceneHierarchy.parent(nodeIndex));
     }
 }
+
+
+// Render the scene hierarchy, for debugging purposes
+void Scene::renderSceneHierarchy(QuadtreeNodeIndex nodeIndex)
+{
+    renderBoundingBox(nodeIndex, true);
+    if (!sceneHierarchy.isLeaf(nodeIndex)) {
+        renderSceneHierarchy(4 * nodeIndex + 1);
+        renderSceneHierarchy(4 * nodeIndex + 2);
+        renderSceneHierarchy(4 * nodeIndex + 3);
+        renderSceneHierarchy(4 * nodeIndex + 4);
+    }
+}
+
+
+int Scene::render(QuadtreeNodeIndex nodeIndex)
+{
+    QuadtreeNode &node = sceneHierarchy.nodes[nodeIndex];
+    if (alreadyRendered[node.gridPosition.x][node.gridPosition.y])
+        return 0;
+    else {
+        render(node.gridPosition);
+        alreadyRendered[node.gridPosition.x][node.gridPosition.y] = true;
+        return 1;
+    }
+}
+
 
 void Scene::render(const glm::ivec2 &gridPosition)
 {
@@ -482,7 +486,19 @@ void Scene::render(const glm::ivec2 &gridPosition)
     if (debugMode || pathMode) renderBoundingBox(gridPosition, true);
 }
 
-// TODO: Can make this more efficient by reducing uniform passing since they are already passed in some cases (?)
+
+void Scene::renderBoundingBox(QuadtreeNodeIndex nodeIndex, bool wireframe)
+{
+    const QuadtreeNode &node = sceneHierarchy.nodes[nodeIndex];
+    const AABB &aabb = node.aabb;
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, (aabb.max + aabb.min) / 2.0f);
+    model = glm::scale(model, aabb.max - aabb.min);
+
+    renderBoundingBox(model, wireframe);
+}
+
+
 void Scene::renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe)
 {
     const AABB &aabb = mesh.aabb;
@@ -493,27 +509,6 @@ void Scene::renderBoundingBox(const glm::ivec2 &gridPosition, bool wireframe)
     renderBoundingBox(model, wireframe);
 }
 
-void Scene::CHC_renderQuadtree(QuadtreeNodeIndex nodeIndex)
-{
-    CHC_renderBoundingBox(nodeIndex, true);
-    if (!sceneHierarchy.isLeaf(nodeIndex)) {
-        CHC_renderQuadtree(4 * nodeIndex + 1);
-        CHC_renderQuadtree(4 * nodeIndex + 2);
-        CHC_renderQuadtree(4 * nodeIndex + 3);
-        CHC_renderQuadtree(4 * nodeIndex + 4);
-    }
-}
-
-void Scene::CHC_renderBoundingBox(QuadtreeNodeIndex nodeIndex, bool wireframe)
-{
-    const QuadtreeNode &node = sceneHierarchy.nodes[nodeIndex];
-    const AABB &aabb = node.aabb;
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, (aabb.max + aabb.min) / 2.0f);
-    model = glm::scale(model, aabb.max - aabb.min);
-
-    renderBoundingBox(model, wireframe);
-}
 
 void Scene::renderBoundingBox(const glm::mat4 &model, bool wireframe)
 {
@@ -528,6 +523,7 @@ void Scene::renderBoundingBox(const glm::mat4 &model, bool wireframe)
     if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+
 void Scene::renderFloor()
 {
     const glm::mat4 &view = camera.getViewMatrix();
@@ -537,16 +533,25 @@ void Scene::renderFloor()
     floor.render();
 }
 
-// Simple conservative frustum culling implementation, all computations are made in world space
-// Checks for the existence of a frustum plane that leaves all vertices of the bounding box to the outside side
-// Might return false positives
-// For more information see: https://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
+
 bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
 {
     glm::mat4 model = glm::translate(glm::mat4(1.0f), worldPosition(gridPosition));
+    glm::vec3 aabbMin = model * glm::vec4(mesh.aabb.min, 1.0f);
+    glm::vec3 aabbMax = model * glm::vec4(mesh.aabb.max, 1.0f);
+    AABB aabb = {aabbMin, aabbMax};
+    return insideFrustum(aabb);    
+}
+
+
+// Simple conservative frustum culling implementation, all computations are made in world space
+// Checks for the existence of a frustum plane that leaves all vertices of the bounding box on the outside
+// Might return false positives
+bool Scene::insideFrustum(const AABB &aabb) const
+{
     const Frustum &frustum = camera.getFrustum();
-    glm::vec4 aabbMin = model * glm::vec4(mesh.aabb.min, 1.0f);
-    glm::vec4 aabbIncrement = model * glm::vec4(mesh.aabb.max - mesh.aabb.min, 0.0f);
+    glm::vec4 aabbMin = glm::vec4(aabb.min, 1.0f);
+    glm::vec4 aabbIncrement = glm::vec4(aabb.max - aabb.min, 0.0f);
 
     for (const glm::vec4 &frustumPlane : frustum.planes) {
         bool allOutside = true;
@@ -562,6 +567,19 @@ bool Scene::insideFrustum(const glm::ivec2 &gridPosition) const
     }
     return true;
 }
+
+
+glm::vec3 Scene::worldPosition(const glm::ivec2 &gridPosition)
+{
+    return glm::vec3(gridPosition.x, 0, -gridPosition.y);
+}
+
+
+float Scene::distanceToCamera(const glm::ivec2 &gridPosition)
+{
+    return glm::distance(camera.getPosition(), worldPosition(gridPosition));
+}
+
 
 void Scene::initShaders()
 {
