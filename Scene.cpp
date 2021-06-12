@@ -425,11 +425,16 @@ Query Scene::renderWithQuery(QuadtreeNodeIndex nodeIndex)
 
 Query Scene::issueQuery(QuadtreeNodeIndex nodeIndex)
 {
+    bool isLeaf = sceneHierarchy.isLeaf(nodeIndex);
     Query query = queryPool.getQuery();
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     glDepthMask(GL_FALSE);
     query.begin();
-    renderBoundingBox(nodeIndex, false);
+    if (isLeaf) {
+        QuadtreeNode &node = sceneHierarchy.nodes[nodeIndex];
+        renderBoundingBox(node.gridPosition, false);
+    }
+    else renderBoundingBox(nodeIndex, false);
     query.end();
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glDepthMask(GL_TRUE);
