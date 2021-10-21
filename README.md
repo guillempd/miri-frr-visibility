@@ -5,6 +5,11 @@ This projects aims to measure and compare the performance of rendering a scene u
 
 For more detailed information see [REPORT.pdf](https://github.com/guillempd/miri-frr-visibility/blob/master/REPORT.pdf).
 
+## Demo Video
+Notice how the fps and instances rendered vary on the bottom left corner depending on the occlusion culling strategy and whether frustum culling is enabled or disabled.
+
+https://user-images.githubusercontent.com/15831136/138293187-ed5d893c-79b2-4646-953f-fa6e4361c3ae.mp4
+
 ## Building the Project
 The project is provided as a CMake project. In order to build it (Linux) execute the following commands at the root directory (where the `CMakeLists.txt` file is located):
 
@@ -43,17 +48,17 @@ Provides the functionality to replay a path, specifying the name of the input fi
 ### Frustum Culling
 For the frustum culling implementation, the relevant functions are:
 ```c++
-Camera::updateFrustum()
-Scene::insideFrustum(const AABB &aabb)
+Camera::updateFrustum();
+Scene::insideFrustum(const AABB &aabb);
 ```
 
 ### Occlusion Culling
 For the occlusion culling implementation, the relevant functions are:
 ```c++
-Scene::renderBasic()
-Scene::renderStopAndWait()
-Scene::renderAdvanced()
-Scene::renderCHC()
+Scene::renderBasic();
+Scene::renderStopAndWait();
+Scene::renderAdvanced();
+Scene::renderCHC();
 ```
 
 ## Project Results
